@@ -165,14 +165,16 @@ def finish_directory(dir):
             writer.writerow(row)
         f.close()
 
-    # prepend 'DST_' to output directory name
-    output_split = os.path.split(dir['output_path'])
-    new_dir_name = 'DST_' + output_split[1]
-    new_path = os.path.join(output_split[0], new_dir_name)
-    try:
-        os.rename(dir['output_path'], new_path)
-    except:
-        pass
+    # prepend 'DST_' to input and output directory name
+    
+    for path in (dir['output_path'], dir['path']):
+        split = os.path.split(path)
+        new_dir_name = 'DST_' + split[1]
+        new_path = os.path.join(split[0], new_dir_name)
+        try:
+            os.rename(path, new_path)
+        except:
+            pass
 
     # convert .orig images to .tiff
     for (root,dirs,files) in os.walk(dir['path']):
@@ -292,7 +294,8 @@ def change_on_off():
 def build_gui():
     global status_message, button_text, searching, ac_queue, output_widget, done_queue
     root.title("Destripe GUI")
-    root.iconbitmap("lct.ico")
+    icon_path = Path(__file__).parent / 'data/lct.ico'
+    root.iconbitmap(icon_path)
 
     mainframe = ttk.Frame(root, padding="3 3 12 12")
     mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
@@ -348,7 +351,8 @@ def main():
     
     counter = 0
     pystripe_running = False
-    config_path = 'config.ini'
+    config_path = Path(__file__).parent / 'data/config.ini'
+    print('Config Path: {}'.format(config_path))
     configs = get_configs(config_path)
     input_dir = Path(configs['paths']['input_dir'])
     output_dir = Path(configs['paths']['output_dir'])

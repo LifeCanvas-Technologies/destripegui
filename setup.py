@@ -1,32 +1,33 @@
-from setuptools import setup
+import setuptools
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 
 with open('README.md') as file:
     long_description = file.read()
 
-REQUIREMENTS = ['pystripe', 'os', 'multiprocessing', 'configparser', 'pathlib', 'csv', 'tkinter', 'sys']
+REQUIREMENTS = ['pystripe']
 
 
-# some more details
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'Programming Language :: Python :: 3.7',
 ]
 
 # calling the setup function 
-setup(name='destripegui',
+setuptools.setup(name='destripegui',
       version=VERSION,
       description='A GUI for automatic pystripe destriping',
       long_description=long_description,
       long_description_content_type='text/markdown',
-      url='https://github.com/nikhilkumarsingh/mygmap',
+      url='https://github.com/lifecanvastechnologies',
       author='LifeCanvas Technologies',
       license='MIT',
-      packages=['pystripe'],
+      packages=setuptools.find_packages(),
+      include_package_data=True,
+      package_data={'': ['data/config.ini', 'data/lct.ico']},
       classifiers=CLASSIFIERS,
       install_requires=REQUIREMENTS,
       entry_points={
-        'console_scripts' : ['destripegui=src.destripegui:main']
+        'console_scripts' : ['destripegui=destripegui.destripegui:main']
       }
 )
