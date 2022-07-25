@@ -211,7 +211,9 @@ def finish_directory(dir):
 
         # append '_DST' to input and output directory name
         split = os.path.split(path)
-        new_dir_name = split[1] + '_DST'
+        if path == dir['path']: suffix = '_DST'
+        else: suffix = '_DONE'
+        new_dir_name = split[1] + suffix
         new_path = os.path.join(split[0], new_dir_name)
         for i in range(10):
             try:
@@ -280,6 +282,7 @@ def abort(dir):
             pass   
     
 def update_status(ac_dirs):
+    global pystripe_running
     current_dirs = []
     for dir in ac_dirs:
         extensions = pystripe.core.supported_extensions
@@ -308,7 +311,8 @@ def update_status(ac_dirs):
                     dir['processed_images'] += 1
 
         if dir['processed_images'] >= dir['target_number']:
-            finish_directory(dir)
+            if pystripe_running: print('Waiting to finish {} until pystripe is complete'.format(dir['path']))
+            else: finish_directory(dir)
         else:
             current_dirs.append(dir)
     return current_dirs
@@ -325,10 +329,8 @@ def update_message():
     if searching:
         status_message.set(message)
 
-
-
 def look_for_images():
-    global times, pb_length, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer
+    global times, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer
     times = {}
     times['a'] = time.time()
     # print('time since last cycle: {:.2f}'.format(time_since))
