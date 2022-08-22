@@ -245,7 +245,7 @@ def finish_directory(dir, processed_images):
         # prepend 'D' to 'Destripe' label in metadata.txt
         metadata_path = os.path.join(path, 'metadata.txt')
         print('metadata path: {}'.format(metadata_path))
-        with open(metadata_path, encoding="utf8", errors="ignore") as f:
+        with open(metadata_path, errors="ignore") as f:
             reader = csv.reader(f, dialect='excel', delimiter='\t')
             line_list = list(reader)
         os.remove(metadata_path)
@@ -402,8 +402,8 @@ def look_for_images():
         output_widget.delete(1.0, 'end')
     else:
         get_pystripe_output()
-        print('average pystripe speed for acquisition: {:.2f} it/s'.format(average_speed[0]))
-    print('pystripe running: {}'.format(pystripe_running))
+        # print('average pystripe speed for acquisition: {:.2f} it/s'.format(average_speed[0]))
+    # print('pystripe running: {}'.format(pystripe_running))
     
     times['update GUI'] = time.time()
     
