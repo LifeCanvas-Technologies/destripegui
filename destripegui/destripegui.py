@@ -217,6 +217,7 @@ def get_metadata(dir):
     dir['metadata'] = metadata_dict
    
     dir['target_number'] = get_target_number(dir)
+    print('target_number: {}'.format(dir['target_number']))
 
 
 # def in_progress(dir):
@@ -226,7 +227,10 @@ def get_metadata(dir):
 
 def get_target_number(dir):
     skips = list(int(tile['Skip']) for tile in dir['metadata']['tiles'])
-    return int(sum(skips) * int(dir['metadata']['Z_Block']) / int(dir['metadata']['Z step (m)']))
+    z_block = float(dir['metadata']['Z_Block'])
+    z_step = float(dir['metadata']['Z step (m)'])
+    print('skips: {}, z_block: {}, z_step: {}'.format(skips, z_block, z_step))
+    return int(sum(skips) * z_block / z_step)
 
 def finish_directory(dir, processed_images):
     global done_queue, pystripe_running
