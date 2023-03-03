@@ -6,10 +6,25 @@ from pathlib import Path
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
-from pprint import pprint
+from datetime import datetime
+import traceback
 
 
 # [WinError 5] Access is denied: 'D:\\SmartSPIM_Data\\2022_07_15\\20220715_12_04_09_FileName' -> 'D:\\SmartSPIM_Data\\2022_07_15\\20220715_12_04_09_FileName_DST'
+
+def log(message):
+    now = datetime.now()
+    if not os.path.exists(log_path):
+        os.mkdir(log_path)
+    month_str = "{}_{}".format(now.strftime('%Y'), now.strftime('%m'))
+    month_log_dir = log_path / month_str
+    if not os.path.exists(month_log_dir):
+        os.mkdir(month_log_dir)
+    day_name = "{}_{}_logging.txt".format(now.strftime('%m'), now.strftime('%d'))
+    filename = month_log_dir / day_name
+    with open(filename, "a") as f:
+        time = now.strftime("%H:%M:%S")
+        f.write("{}  -  {}\n".format(time, message))
 
 def get_configs(config_path):
     config = configparser.ConfigParser()   
@@ -17,13 +32,16 @@ def get_configs(config_path):
     return config
 
 def run_pystripe(dir, configs):
+    # Asynchronous function that runs pystripe batch_filter module and rename_images function
+
+    log("Running pystripe on: {}".format(input_path))
     input_path = Path(dir['path'])
     output_path = Path(dir['output_path'])
     sig_strs = dir['metadata']['Destripe'].split('/')
     sigma = list(int(sig_str) for sig_str in sig_strs)
     workers = int(configs['params']['workers'])
     chunks = int(configs['params']['chunks'])
-
+    
     with open('pystripe_output.txt', 'w') as f:
         sys.stdout = f
         sys.stderr = f
@@ -35,18 +53,21 @@ def run_pystripe(dir, configs):
                     auto_mode=True)
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
-    # file_path = os.path.join(input_path, 'image_count.txt')
-    # os.remove(file_path)
+    
+    log("Pystripe finished on: {}".format(input_path))
     rename_images(dir)
 
 def rename_images(dir):
+    # Appends .orig to images that have been destriped, after batch_filter finishes.  On same async thread as run_pystripe
+
     output_path = dir['output_path']
     input_path = dir['path']
     file_path = os.path.join(output_path, 'destriped_image_list.txt')
     with open(file_path, 'r') as f:
         image_list = f.readlines()
-    print('renaming...')
-    t1 = time.time()
+    images_len = len(image_list)
+    log('Appending .orig to {} images in {}...'.format(str(images_len), input_path))
+
     for image in image_list:
         image = image.strip()
         try:
@@ -54,44 +75,26 @@ def rename_images(dir):
         except WindowsError as e:
             if e.winerror == 183:
                 os.remove(image)
-        except Exception as e:
-            print(e)
+                log('    {}.orig already exists.  Deleting duplicate'.format(image))
+        except:
+            log(traceback.format_exc())
+    log("Done renaming files in {}.  Deleting 'destriped_image_list.txt'".format(input_path))
     os.remove(file_path)
-    dt = '{:.2f}'.format(time.time() - t1)
-    print('done renaming after {} seconds'.format(dt))
-
-def walklevel(some_dir, level):
-    some_dir = str(some_dir)
-    some_dir = some_dir.rstrip(os.path.sep)
-    assert os.path.isdir(some_dir)
-    num_sep = some_dir.count(os.path.sep)
-    for root, dirs, files in os.walk(some_dir):
-        yield root, dirs, files
-        num_sep_this = root.count(os.path.sep)
-        if num_sep + level <= num_sep_this:
-            del dirs[:]
 
 def search_directory(input_dir, output_dir, search_dir, ac_list, depth):
-    # print(directory)
+    # Recursive search function through input_dir to find directories with metadata.txt.  Ignores _DST and the no_list
+
     try:
         contents = os.listdir(search_dir)
     except WindowsError as e:
-        if e.winerror == 3:
-            print(e)
-    #     # root.geometry("300x200")
-    #     # w = Label(root, text ='DestripeGUI', font = "50") 
-    #     # w.pack()
-            messagebox.showwarning('Error', 'Error reading from drive: {}.  Please make sure network drives are accessible.'.format(input_dir))
-    #     # root.mainloop()
-    #     # while True:
-    #     #     time.sleep(1)
-    # contents = os.listdir(search_dir)
-    # print(contents)
+        log(traceback.format_exc())
+        messagebox.showwarning('Windows Error', '{}\nInput and output drives can be set by editing:\n{}'.format(e, config_path))
     if 'metadata.txt' in contents:
         ac_list.append({
             'path': search_dir, 
             'output_path': os.path.join(output_dir, os.path.relpath(search_dir, input_dir))
         })
+        log("Adding {} to provisional Acquisition Queue".format(search_dir))
         return ac_list
     if depth == 0: return ac_list
     for item in contents:
@@ -100,63 +103,63 @@ def search_directory(input_dir, output_dir, search_dir, ac_list, depth):
         if os.path.isdir(item_path) and 'DST' not in item and item_path not in no_list:
             try:
                 ac_list = search_directory(input_dir, output_dir, item_path, ac_list, depth-1)
-            except: pass
+            except: 
+                log("Error encountered trying to add {} to New Acquisitions List:".format(item_path))
+                log(traceback.format_exc())
+                log("Continuing on anyway...")
+                pass
     return ac_list
 
 def get_acquisition_dirs(input_dir, output_dir):
+    # run recursive search for new directories.  Build metadata dicts. Checks metadata flags and folder names to make
+    # sure its actually new, and adds to no_list if not 
+
     global times
     search_dir = input_dir
     ac_dirs = search_directory(input_dir, output_dir, search_dir, list(), depth=3)
-    
-    # for (root,dirs,files) in walklevel(input_dir, 2):
-        # print(os.path.abspath(root))
-        # if 'metadata.txt' in files:
-            # ac_dirs.append({
-                # 'path': root,
-                # 'output_path': os.path.join(output_dir, os.path.relpath(root, input_dir))
-            # })
             
-    times['search_directory'] = time.time()
     for dir in ac_dirs:
         try:
             get_metadata(dir)
         except:
+            log("An error occurred attempting to read metadata for {}:".format(dir['path']))
+            log(traceback.format_exc())
+            log("Adding {} to the No List".format(dir['path']))
             no_list.append(dir['path'])
-        
-    
-        
-    times['get_metadata'] = time.time()    
-    # print('before metadata check: {}'.format(len(ac_dirs)))
+            
     unfinished_dirs = []    
     for dir in ac_dirs:
         try:
             destripe_tag = dir['metadata']['Destripe']
-            if 'N' in destripe_tag or 'D' in destripe_tag:
+            if 'N' in destripe_tag:
                 no_list.append(dir['path'])
+                log("Adding {} to No List because N/A flag set in metadata".format(dir['path']))
+                continue
+            elif 'D' in destripe_tag:
+                no_list.append(dir['path'])
+                log("Adding {} to No List becasue D flag set in metadata".format(dir['path']))
                 continue
             elif dir['output_path'][-2:] == '_A':
                 no_list.append(dir['path'])
+                log("Adding {} to No List because _A flag set in output path".format(dir['path']))
                 continue
             elif 'A' in destripe_tag:
                 if pystripe_running == False:
-                    print('aborting: {}'.format(dir['path']))
                     abort(dir)
-                else: print('waiting to abort {}'.format(dir['path']))
-            else: unfinished_dirs.append(dir)
+                else: log("Waiting for pystripe to finish before aborting {}".format(dir['path']))
+            else: 
+                unfinished_dirs.append(dir)
+                log("Adding {} to final Acquisition Queue".format(dir['path']))
         except:
+            log('Error encountered while checking metadata tags for {}:'.format(dir['path']))
             pass
-        
-        # if in_progress(dir):
-            # unfinished_dirs.append(dir)
-            
-    # print('after metadata check:{}'.format(len(unfinished_dirs)))
-    # for dir in unfinished_dirs:
-        # print(dir['path'])
     
     if len(unfinished_dirs) > 0: unfinished_dirs.sort(key=lambda x: x['path'])
     return unfinished_dirs
 
 def pair_key_value_lists(keys, values):
+    # utility function for building metadata dict
+
     d = {}
     for i in range(0, len(keys)):
         key = keys[i]
@@ -166,6 +169,8 @@ def pair_key_value_lists(keys, values):
     return d
 
 def get_metadata(dir):
+    # builds metadata dict
+
     metadata_path = os.path.join(dir['path'], 'metadata.txt')
 
     metadata_dict = {
@@ -226,19 +231,25 @@ def get_metadata(dir):
     # return 'D' not in destripe_tag and 'A' not in destripe_tag
 
 def get_target_number(dir):
+    # Calculates number of images in acquisition
+
     skips = list(int(tile['Skip']) for tile in dir['metadata']['tiles'])
     z_block = float(dir['metadata']['Z_Block'])
     z_step = float(dir['metadata']['Z step (m)'])
-    print('skips: {}, z_block: {}, z_step: {}'.format(skips, z_block, z_step))
-    return int(sum(skips) * z_block / z_step)
+    target = int(sum(skips) * z_block / z_step)
+
+    log("Target number calculation for {}:".format(dir['path']))
+    log('skips: {}, z_block: {}, z_step: {}, target: {}'.format(skips, z_block, z_step, target))
+    return target
 
 def finish_directory(dir, processed_images):
-    global done_queue, pystripe_running
-    no_list.append(dir['path'])
-    print('finish_directory: {}'.format(os.path.split(dir['path'])[1]))
-    print('proc test (i.e. python_running): {}'.format(any(p.is_alive() for p in procs)))
+    # Perform tasks needed once directory is finished destriping
 
-    
+    log('Finishing {}...'.format(dir['path']))
+    no_list.append(dir['path'])
+    log('    Adding {} to No List'.format(dir['path']))
+    log('    Is pystripe running?: {}'.format(any(p.is_alive() for p in procs)))
+
     # add folder to "done queue"
     done_queue.insert('', 'end', values=(
         os.path.relpath(dir['path'], input_dir),
@@ -257,14 +268,12 @@ def finish_directory(dir, processed_images):
                     print(e)
                     pass
                 revert_count += 1
-    print('reverted {} images back from .orig'.format(revert_count))
+    log('    Reverted {} images back from .orig'.format(revert_count))
      
     for path in [dir['output_path'], dir['path']]:
-        print('path: {}'.format(path))
-    
         # prepend 'D' to 'Destripe' label in metadata.txt
+        log("    Adding 'D' to Destripe metadata tag in {}".format(path))
         metadata_path = os.path.join(path, 'metadata.txt')
-        print('metadata path: {}'.format(metadata_path))
         with open(metadata_path, errors="ignore") as f:
             reader = csv.reader(f, dialect='excel', delimiter='\t')
             line_list = list(reader)
@@ -282,22 +291,23 @@ def finish_directory(dir, processed_images):
         else: suffix = '_DONE'
         new_dir_name = split[1] + suffix
         new_path = os.path.join(split[0], new_dir_name)
-
         try:
             os.rename(path, new_path)
-        except Exception as e:
-            print(e)
+            log("    Adding '{}' to directory name : {}".format(suffix, path))
+        except:
+            log("    An error occurred while renaming {}:".format(path))
+            log(traceback.format_exc())
             pass
-    print('finished finishing {}'.format(os.path.split(dir['path'])[1]))
+    log('    Finished finishing {}'.format(dir['path']))
     
 def abort(dir):
+    # Perform tasks needed to respond to aborted acquisition
+    
+    log("Aborting {}...".format(dir['path']))
     no_list.append(dir['path'])
     if 'output_path' not in dir.keys():
-        print('no output path: aborting abortion')
+        log('    No output path for {}: aborting abortion'.format(dir['path']))
         return
-
-    # if dir['output_path'][-2:] == '_A': return
-    print('abort directory: {}'.format(dir['output_path']))
 
     # convert .orig images back
     revert_count = 0
@@ -309,18 +319,19 @@ def abort(dir):
                     os.rename(file_path, os.path.splitext(file_path)[0])
                     revert_count += 1
                 except Exception as e:
-                    print('Error reverting image from .orig after aborted acquisition:')
-                    print(e)
+                    log('    Error reverting image from .orig after aborted acquisition:')
+                    log(traceback.format_exc())
                 
-    print('reverted {} images back from .orig'.format(revert_count))
+    log('    Reverted {} images back from .orig'.format(revert_count))
     
     # append to A to output metadata destripe tag
+    log('    Adding "A" to output metadata tag')
     metadata_path = os.path.join(dir['output_path'], 'metadata.txt')
     if not os.path.exists(metadata_path):
         dir['output_path'] += '_A'
         metadata_path = os.path.join(dir['output_path'], 'metadata.txt')
     if not os.path.exists(metadata_path):
-        print('no metadata path')
+        log('    Error: Cannot find metadata.txt path in output folder')
     else:        
         try:
             with open(metadata_path, errors="ignore") as f:
@@ -328,30 +339,33 @@ def abort(dir):
                 line_list = list(reader)
             os.remove(metadata_path)
             destripe = line_list[1][6]
-            if ('A' in destripe): print('A already in output metadata for: {}'.format(dir['path']))
+            if ('A' in destripe): log('    "A" already in output metadata')
             else: 
                 line_list[1][6] = 'A' + destripe
                 with open(metadata_path, 'w', newline='') as f:
                     writer = csv.writer(f, dialect='excel', delimiter='\t')
                     for row in line_list:
                         writer.writerow(row)
-        except Exception as e:
-            print(e)
+        except:
+            log('    Error adding "A" to metadata tag:')
+            log(traceback.format_exc())
             
     # append _A to output directory name
-    if dir['output_path'][-2:] == '_A': print('_A already in output path for: {}'.format(dir['path']))
+    log('    Appending "_A" to output path')
+    if dir['output_path'][-2:] == '_A': log('    _A already in output path')
     else:
         try:
             split = os.path.split(dir['output_path'])
             new_dir_name = split[1] + '_A'
             new_path = os.path.join(split[0], new_dir_name)
             os.rename(dir['output_path'], new_path)
-            print('renamed output path for: {}'.format(dir['path']))
-        except Exception as e:
-            print(e)  
+        except:
+            log('    An error occured while appending "_A" to the output path:')
+            log(traceback.format_exc())
     
     # append _A to input directory name
-    if dir['path'][-2:] == '_A': print('_A already in input path for: {}'.format(dir['path']))
+    log('    Appending "_A" to input path')
+    if dir['path'][-2:] == '_A': log('    _A already in input path')
     else:
         try:
             split = os.path.split(dir['path'])
@@ -359,58 +373,66 @@ def abort(dir):
             new_path = os.path.join(split[0], new_dir_name)
             os.rename(dir['path'], new_path)
             print('renamed input path for: {}'.format(dir['path']))
-        except Exception as e:
-            print(e)
+        except:
+            log('    An error occured while appending "_A" to the input path:')
+            log(traceback.format_exc())
+    log("Done aborting {}...".format(dir['path']))
 
-def update_status(active_dir):
-    global pystripe_running, procs
-    current_dirs = []
-    extensions = pystripe.core.supported_extensions
-    # for dir in ac_dirs:
+# def update_status(active_dir):
+#     current_dirs = []
+#     extensions = pystripe.core.supported_extensions
+#     # for dir in ac_dirs:
     
-    active_dir['unprocessed_images'] = 0
-    active_dir['orig_images'] = 0
-    active_dir['processed_images'] = 0
+#     active_dir['unprocessed_images'] = 0
+#     active_dir['orig_images'] = 0
+#     active_dir['processed_images'] = 0
 
-    # get lists of processed and unprocessed images in input directory and processed images in output directory
-    for (root,dirs,files) in os.walk(active_dir['path']):
-        for file in files:
-            if Path(file).suffix in extensions:
-                active_dir['unprocessed_images'] += 1
-            elif Path(file).suffix == '.orig':
-                active_dir['orig_images'] += 1
-    current = 0
-    in_progress_list = os.path.join(active_dir['output_path'], 'destriped_image_list.txt')
-    if os.path.exists(in_progress_list):
-        with open(in_progress_list, 'r') as f:
-            current = len(f.readlines())
-    # print('currently being destriped: {}'.format(current))
-    active_dir['unprocessed_images'] -= current
+#     # get lists of processed and unprocessed images in input directory and processed images in output directory
+#     for (root,dirs,files) in os.walk(active_dir['path']):
+#         for file in files:
+#             if Path(file).suffix in extensions:
+#                 active_dir['unprocessed_images'] += 1
+#             elif Path(file).suffix == '.orig':
+#                 active_dir['orig_images'] += 1
+#     current = 0
+#     in_progress_list = os.path.join(active_dir['output_path'], 'destriped_image_list.txt')
+#     if os.path.exists(in_progress_list):
+#         with open(in_progress_list, 'r') as f:
+#             current = len(f.readlines())
+#     # print('currently being destriped: {}'.format(current))
+#     active_dir['unprocessed_images'] -= current
     
-    for (root, dirs, files) in os.walk(active_dir['output_path']):
-        for file in files:
-            if Path(file).suffix in extensions:
-                active_dir['processed_images'] += 1
+#     for (root, dirs, files) in os.walk(active_dir['output_path']):
+#         for file in files:
+#             if Path(file).suffix in extensions:
+#                 active_dir['processed_images'] += 1
     
     
-    if active_dir['processed_images'] >= active_dir['target_number']:
-        if pystripe_running: print('Waiting to finish {} until pystripe is complete'.format(active_dir['path']))
-        else: finish_directory(active_dir)
-    else:
-        current_dirs.append(active_dir)
+#     if active_dir['processed_images'] >= active_dir['target_number']:
+#         if pystripe_running: print('Waiting to finish {} until pystripe is complete'.format(active_dir['path']))
+#         else: finish_directory(active_dir)
+#     else:
+#         current_dirs.append(active_dir)
     
-    return current_dirs
+#     return current_dirs
 
 def count_processed_images(active_dir):
+    # Count processed images in output path
+
+    log("Begin image count for {}".format(active_dir['output_path']))
     processed_images = 0
     extensions = pystripe.core.supported_extensions
     for (root, dirs, files) in os.walk(active_dir['output_path']):
         for file in files:
             if Path(file).suffix in extensions:
                 processed_images += 1
+    log("Finish image count for {}".format(active_dir['output_path']))
+
     return processed_images
 
 def update_message():
+    # Move "searching for images...." message
+
     global counter, status_message
     period = 50
     count = counter % period
@@ -423,9 +445,9 @@ def update_message():
         status_message.set(message)
 
 def look_for_images():
-    global times, average_speed, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer, output_widget
-    times = {}
-    times['start'] = time.time()
+    # Main loop
+
+    global average_speed, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer, output_widget
     
     # update GUI
     update_message()
@@ -437,37 +459,30 @@ def look_for_images():
         output_widget.delete(1.0, 'end')
     else:
         get_pystripe_output()
-        # print('average pystripe speed for acquisition: {:.2f} it/s'.format(average_speed[0]))
-    # print('pystripe running: {}'.format(pystripe_running))
-    
-    times['update GUI'] = time.time()
+        log('Average pystripe speed for acquisition: {:.2f} it/s'.format(average_speed[0]))
     
     # get acquisition directories
     acquisition_dirs = get_acquisition_dirs(input_dir, output_dir)
-    times['return ac_dirs'] = time.time()
     
     if len(acquisition_dirs) > 0:
         active_dir = acquisition_dirs[0]
     # abort if A
-        if 'A' in active_dir['metadata']['Destripe'] and pystripe_running == False:
-            # print('aborting: {}'.format(active_dir['path']))
-            abort(active_dir)
-            acquisition_dirs.remove(active_dir)
-            times['aborted dir'] = time.time()
-            average_speed = [0,0]
+        # if 'A' in active_dir['metadata']['Destripe'] and pystripe_running == False:
+        #     abort(active_dir)
+        #     acquisition_dirs.remove(active_dir)
+        #     average_speed = [0,0]
         
     # finish if done
     if len(acquisition_dirs) > 0:
         active_dir = acquisition_dirs[0]
         processed_images = count_processed_images(active_dir)
-        times['count processed'] = time.time()
         if processed_images >= active_dir['target_number'] and pystripe_running == False:
             finish_directory(active_dir, processed_images)
             acquisition_dirs.remove(active_dir)
-            times['finished dir'] = time.time()
             average_speed = [0,0]
-        
+            
     if len(acquisition_dirs) > 0:  
+        # Add new acquisitions to GUI acquisition queue
         active_dir = acquisition_dirs[0]
         ac_queue.insert('', 'end', values=(
             os.path.relpath(active_dir['path'], input_dir),
@@ -482,6 +497,9 @@ def look_for_images():
                 dir['target_number']
             ))
               
+# YOU ARE HERE
+
+
         pct = 100 * processed_images / active_dir['target_number']
         if pct > 100: pct = 100
         progress_bar['value'] = pct
@@ -504,9 +522,6 @@ def look_for_images():
         short_time = '{:.2f}'.format(long_time - timer)
         times[key] = short_time
     timer = time.time()
-    # print(times)
-    
-    # if searching:
     counter += 1 
     root.after(1000, look_for_images) 
 
@@ -532,45 +547,15 @@ def get_pystripe_output():
                 line_list2[-1] = line
                 regex = '(?<=, )(.*?)(?=it/s)'
                 speed_list = re.findall(regex, line)
-                # print('line: {}'.format(line))
-                # print('speed_list: {}'.format(speed_list))
                 try: update_average_speed(speed_list[0])
                 except Exception as e:
-                    # print('could not update average speed:\n{}'.format(e))
                     pass
             else: 
                 line_list2.append(line)
             first_line = False
         else: line_list2.append(line)
-    
-    # if len(line_list) < 7:
-        # output = ''.join(line_list)
-    # elif 'Done' in line_list[-1]:
-        # output = ''.join(line_list[:5] + line_list[-2:])
-    # else:
-        # output = ''.join(line_list[:5] + line_list[-1:])
     output = ''.join(line_list2)
-    # print(output)
-    
     output_widget.insert('end', output)
-
-    # if pystripe_running:
-        # root.after(300, get_pystripe_output)
-
-# def change_on_off():
-    # global searching, button_text, status_message, counter, timer
-    # searching = not searching
-    # if searching:
-        # counter = 0
-        # timer = 0
-        # button_text.set('STOP')
-        # status_message.set('Searching for images')
-        # look_for_images()
-        
-        
-    # else: 
-        # button_text.set('START')
-        # status_message.set('')
         
 def build_gui():
     global status_message, button_text, searching, ac_queue, output_widget, done_queue, progress_bar, pb_length
@@ -638,29 +623,28 @@ def build_gui():
         child.grid_configure(padx=5, pady=5)
 
 def main():
-    global config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed
+    global config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path
     timer = 0
     counter = 0
     average_speed = [0,0]
     pystripe_running = False
     config_path = Path(__file__).parent / 'data/config.ini'
+    log_path = Path(__file__).parent / 'data/logging'
     print('Config Path: {}'.format(config_path))
     configs = get_configs(config_path)
     procs = []
     no_list = []
-    
     root = Tk()
+    
     try:
         input_dir = Path(configs['paths']['input_dir'])
         output_dir = Path(configs['paths']['output_dir'])
-        print('Input Directory: {}, Output Directory: {}'.format(input_dir, output_dir))
+        log('----------------   RESTART  -----------------')
+        log('Input Directory: {}'.format(input_dir))
+        log('Output Directory: {}'.format(output_dir))
     except:
-        print('error message')
-        root.geometry("300x200")
-        w = Label(root, text ='DestripeGUI', font = "50") 
-        w.pack()
-        messagebox.showwarning('showwarning', 'Could not find drive')
-        root.mainloop()
+        log(traceback.format_exc())
+        messagebox.showwarning('Path Error', 'Could not access config file at: {}'.format(config_path))
 
     build_gui()
     look_for_images()

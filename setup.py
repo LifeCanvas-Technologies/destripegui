@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = "1.5.6"
+VERSION = "1.6.0"
 
 with open('README.md') as file:
     long_description = file.read()
@@ -24,7 +24,7 @@ setuptools.setup(name='destripegui',
       license='MIT',
       packages=setuptools.find_packages(),
       include_package_data=True,
-      package_data={'': ['data/config.ini', 'data/lct.ico']},
+      package_data={'': ['data/config.ini', 'data/lct.ico', 'data/DestripeGUI.exe']},
       classifiers=CLASSIFIERS,
       install_requires=REQUIREMENTS,
       entry_points={
