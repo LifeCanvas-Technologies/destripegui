@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 
 with open('README.md') as file:
     long_description = file.read()
