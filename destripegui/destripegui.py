@@ -103,8 +103,9 @@ def search_directory(input_dir, output_dir, search_dir, ac_list, depth):
     try:
         contents = os.listdir(search_dir)
     except WindowsError as e:
-        log(traceback.format_exc(), True)
-        messagebox.showwarning('Windows Error', '{}\nInput and output drives can be set by editing:\n{}'.format(e, config_path))
+        log('Error: {} Input and output drives can be set by editing: {}'.format(e, config_path), False)
+        log(traceback.format_exc(), False)
+        return
     if 'metadata.txt' in contents:
         ac_list.append({
             'path': search_dir, 
@@ -271,8 +272,8 @@ def finish_directory(dir, processed_images):
     for file in Path(dir['path']).iterdir():
         file_name = os.path.split(file)[1]
         if Path(file).suffix == '.txt':
-            log('Copying {} to {}'.format(file_name, dir['output_path']), True)
-            output_file = os.path.join(Path(dir['output_dir']), file_name)
+            log('    Copying {} to {}'.format(file_name, dir['output_path']), True)
+            output_file = os.path.join(Path(dir['output_path']), file_name)
             shutil.copyfile(file, output_file)
 
     prepend_tag(dir, 'in', 'D')
@@ -292,14 +293,15 @@ def append_folder_name(dir, drive, msg):
     split = os.path.split(path)
     new_dir_name = split[1] + msg
     new_path = os.path.join(split[0], new_dir_name)
+    
     try:
         os.rename(path, new_path)
         log("    Adding '{}' to directory name : {}".format(msg, path), True)
-        return 1
+        return True
     except:
         log("    An error occurred while renaming {}:".format(path), True)
         log(traceback.format_exc(), True)
-        return 0
+        return False
 
 def prepend_tag(dir, drive, msg):
     # prepend tag to metadata file
