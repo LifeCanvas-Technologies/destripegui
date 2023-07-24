@@ -1,0 +1,142 @@
+15:51:28  -  ----------------   RESTART  -----------------
+15:51:28  -  Input Directory: D:\SmartSPIM_Data
+15:51:28  -  Output Directory: S:\SmartSPIM_Data
+15:51:35  -  Error: [WinError 53] The network path was not found: 'D:\\SmartSPIM_Data' Input and output drives can be set by editing: c:\users\herculanolab\documents\github\destripegui\destripegui\data\config.ini
+15:51:35  -  Traceback (most recent call last):
+  File "c:\users\herculanolab\documents\github\destripegui\destripegui\destripegui.py", line 120, in search_directory
+    contents = os.listdir(search_dir)
+FileNotFoundError: [WinError 53] The network path was not found: 'D:\\SmartSPIM_Data'
+
+15:52:51  -  ----------------   RESTART  -----------------
+15:52:51  -  Input Directory: C:\SmartSPIM_Data
+15:52:51  -  Output Directory: C:\SmartSPIM_Data_output
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_21_FileName_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_31_FileName_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_41_FileName_AcqAborted to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_51_FileName_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_49_33_FileName_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_01_13_FileName_AcqAborted to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_59_28_FileName_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_15_01_35_FileName_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2) to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (3)_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (4)_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (5)_DestripeDone to provisional Acquisition Queue
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone:
+15:52:51  -  skips: 1, z_block: 79.0, z_step: 2.0, target: 39
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_21_FileName_DestripeDone:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_31_FileName_DestripeDone:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_41_FileName_AcqAborted:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_51_FileName_DestripeDone:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_49_33_FileName_DestripeDone:
+15:52:51  -  skips: 1, z_block: 315.0, z_step: 2.0, target: 157
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_14_01_13_FileName_AcqAborted:
+15:52:51  -  skips: 1, z_block: 314.0, z_step: 2.0, target: 157
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_14_59_28_FileName_DestripeDone:
+15:52:51  -  skips: 1, z_block: 260.0, z_step: 2.0, target: 130
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_15_01_35_FileName_DestripeDone:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2):
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (3)_DestripeDone:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (4)_DestripeDone:
+15:52:51  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (5)_DestripeDone:
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_21_FileName_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_31_FileName_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_41_FileName_AcqAborted to No List because A flag set in metadata
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_51_FileName_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_49_33_FileName_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_01_13_FileName_AcqAborted to No List because A flag set in metadata
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_59_28_FileName_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_15_01_35_FileName_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2) to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (3)_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (4)_DestripeDone to final Acquisition Queue
+15:52:51  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (5)_DestripeDone to final Acquisition Queue
+15:52:51  -  Begin image count for C:\SmartSPIM_Data_output\2022_08_22\20220822_12_38_49_FileName_DestripeDone
+15:52:51  -  Finish image count for C:\SmartSPIM_Data_output\2022_08_22\20220822_12_38_49_FileName_DestripeDone
+15:52:53  -  Running pystripe on: C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone
+15:52:58  -  Running pystripe on: C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone
+15:53:03  -  Running pystripe on: C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone
+15:55:22  -  ----------------   RESTART  -----------------
+15:55:22  -  Input Directory: C:\SmartSPIM_Data
+15:55:22  -  Output Directory: C:\SmartSPIM_Data_output
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_21_FileName_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_31_FileName_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_41_FileName_AcqAborted to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_51_FileName_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_49_33_FileName_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_01_13_FileName_AcqAborted to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_59_28_FileName_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_15_01_35_FileName_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2) to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (3)_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (4)_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (5)_DestripeDone to provisional Acquisition Queue
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone:
+15:55:22  -  skips: 1, z_block: 79.0, z_step: 2.0, target: 39
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_21_FileName_DestripeDone:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_31_FileName_DestripeDone:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_41_FileName_AcqAborted:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_40_51_FileName_DestripeDone:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_12_49_33_FileName_DestripeDone:
+15:55:22  -  skips: 1, z_block: 315.0, z_step: 2.0, target: 157
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_14_01_13_FileName_AcqAborted:
+15:55:22  -  skips: 1, z_block: 314.0, z_step: 2.0, target: 157
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_14_59_28_FileName_DestripeDone:
+15:55:22  -  skips: 1, z_block: 260.0, z_step: 2.0, target: 130
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\20220822_15_01_35_FileName_DestripeDone:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2):
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (3)_DestripeDone:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (4)_DestripeDone:
+15:55:22  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy (5)_DestripeDone:
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_38_49_FileName_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_21_FileName_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_31_FileName_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_41_FileName_AcqAborted to No List because A flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_40_51_FileName_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_12_49_33_FileName_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_01_13_FileName_AcqAborted to No List because A flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_14_59_28_FileName_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\20220822_15_01_35_FileName_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy to final Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2) to final Acquisition Queue
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (3)_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (4)_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy (5)_DestripeDone to No List because D flag set in metadata
+15:55:22  -  Begin image count for C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy
+15:55:22  -  Finish image count for C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy
+15:55:23  -  Running pystripe on: C:\SmartSPIM_Data\2022_08_22\test1 - Copy
+15:56:09  -  Pystripe finished on: C:\SmartSPIM_Data\2022_08_22\test1 - Copy
+15:56:09  -  Appending .orig to 158 images in C:\SmartSPIM_Data\2022_08_22\test1 - Copy...
+15:56:09  -  Done renaming files in C:\SmartSPIM_Data\2022_08_22\test1 - Copy.  Deleting 'destriped_image_list.txt'
+15:56:09  -  Finishing C:\SmartSPIM_Data\2022_08_22\test1 - Copy...
+15:56:09  -      Average pystripe speed for acquisition: 4.10 it/s
+15:56:09  -      Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy to No List
+15:56:09  -      Is pystripe running?: False
+15:56:09  -      Reverted 158 images back from .orig
+15:56:09  -      Copying ASI_logging.txt to C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy
+15:56:09  -      Copying metadata.txt to C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy
+15:56:09  -      Copying TileSettings.ini to C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy
+15:56:09  -      Adding 'D' to Destripe metadata tag in C:\SmartSPIM_Data\2022_08_22\test1 - Copy\metadata.txt
+15:56:09  -      Adding 'D' to Destripe metadata tag in C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy\metadata.txt
+15:56:09  -      Adding '_DestripeDone' to directory name : C:\SmartSPIM_Data\2022_08_22\test1 - Copy
+15:56:09  -      Adding '_DestripeDone' to directory name : C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy
+15:56:09  -  Finished finishing C:\SmartSPIM_Data\2022_08_22\test1 - Copy
+15:56:10  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy_DestripeDone to provisional Acquisition Queue
+15:56:10  -  Target number calculation for C:\SmartSPIM_Data\2022_08_22\test1 - Copy_DestripeDone:
+15:56:10  -  Adding C:\SmartSPIM_Data\2022_08_22\test1 - Copy_DestripeDone to No List because D flag set in metadata
+15:56:10  -  Begin image count for C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy (2)
+15:56:10  -  Finish image count for C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy (2)
+15:56:11  -  Running pystripe on: C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2)
+15:56:38  -  Cancelling C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2)
+15:56:38  -      waiting...
+15:56:38  -      Reverted 0 images back from .orig
+15:56:38  -      Adding 'C' to Destripe metadata tag in C:\SmartSPIM_Data\2022_08_22\test1 - Copy (2)\metadata.txt
+15:56:38  -      Adding 'C' to Destripe metadata tag in C:\SmartSPIM_Data_output\2022_08_22\test1 - Copy (2)\metadata.txt

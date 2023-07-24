@@ -177,6 +177,10 @@ def get_acquisition_dirs(input_dir, output_dir):
                 no_list.append(dir['path'])
                 log("Adding {} to No List because C flag set in metadata".format(dir['path']), True)
                 continue
+            elif tag == 'D':
+                no_list.append(dir['path'])
+                log("Adding {} to No List because D flag set in metadata".format(dir['path']), True)
+                continue
             elif tag == 'A':
                 no_list.append(dir['path'])
                 if str(dir['path'])[-11:] != '_AcqAborted': abort(dir)
