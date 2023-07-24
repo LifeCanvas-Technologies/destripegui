@@ -1,5 +1,6 @@
 import pystripe
 import os, sys, time, csv, re
+import math
 import multiprocessing
 import configparser
 from pathlib import Path
@@ -9,6 +10,21 @@ from tkinter import messagebox
 from datetime import datetime
 import traceback
 import shutil
+
+def delta_string(time2, time1):
+    delta = time2 - time1
+    seconds = delta.seconds
+    hours = math.floor(seconds / 3600)
+    seconds = seconds - hours*3600
+    minutes = math.floor(seconds / 60)
+    seconds = seconds - minutes*60
+    if hours > 0:
+        time_string = "{}h {}m {}s".format(hours, minutes, seconds)
+    elif minutes > 0:
+        time_string = "{}m {}s".format(minutes, seconds)
+    else: time_string = "{}s".format(seconds)
+    return time_string
+
 
 def log(message, repeat):
     if not repeat:
@@ -105,6 +121,7 @@ def search_directory(input_dir, output_dir, search_dir, ac_list, depth):
     except WindowsError as e:
         log('Error: {} Input and output drives can be set by editing: {}'.format(e, config_path), False)
         log(traceback.format_exc(), False)
+        messagebox.showwarning(title='Drive Access Error', message='Error: {}\nInput and output drives can be set by editing:\n{}'.format(e, config_path))
         return
     if 'metadata.txt' in contents:
         ac_list.append({
@@ -145,24 +162,26 @@ def get_acquisition_dirs(input_dir, output_dir):
             
     unfinished_dirs = []    
     for dir in ac_dirs:
+        destripe_string = dir['metadata']['Destripe']
         try:
-            destripe_tag = dir['metadata']['Destripe']
-            if 'N' in destripe_tag:
+            tag = ''
+            for s in ['N', 'C', 'D', 'A']:
+                if s in destripe_string:
+                    tag = s
+                    break
+            if tag == 'N':
                 no_list.append(dir['path'])
-                log("Adding {} to No List because N/A flag set in metadata".format(dir['path']), True)
+                log("Adding {} to No List because N(/A) flag set in metadata".format(dir['path']), True)
                 continue
-            elif 'D' in destripe_tag:
+            elif tag == 'C':
                 no_list.append(dir['path'])
-                log("Adding {} to No List becasue D flag set in metadata".format(dir['path']), True)
+                log("Adding {} to No List because C flag set in metadata".format(dir['path']), True)
                 continue
-            elif dir['output_path'][-2:] == '_A':
+            elif tag == 'A':
                 no_list.append(dir['path'])
-                log("Adding {} to No List because _A flag set in output path".format(dir['path']), True)
+                if str(dir['path'])[-11:] != '_AcqAborted': abort(dir)
+                log("Adding {} to No List because A flag set in metadata".format(dir['path']), True)
                 continue
-            elif 'A' in destripe_tag:
-                if pystripe_running == False:
-                    abort(dir)
-                else: log("Waiting for pystripe to finish before aborting {}".format(dir['path']), True)
             else: 
                 unfinished_dirs.append(dir)
                 log("Adding {} to final Acquisition Queue".format(dir['path']), False)
@@ -245,7 +264,8 @@ def get_target_number(dir):
     skips = sum(list(int(tile['Skip']) for tile in dir['metadata']['tiles']))
     z_block = float(dir['metadata']['Z_Block'])
     z_step = float(dir['metadata']['Z step (m)'])
-    target = int(skips * z_block / z_step)
+    steps_per_tile = max(z_block / z_step, 1)
+    target = int(skips * steps_per_tile)
 
     log("Target number calculation for {}:".format(dir['path']), False)
     log('skips: {}, z_block: {}, z_step: {}, target: {}'.format(skips, z_block, z_step, target), False)
@@ -271,15 +291,15 @@ def finish_directory(dir, processed_images):
 
     for file in Path(dir['path']).iterdir():
         file_name = os.path.split(file)[1]
-        if Path(file).suffix == '.txt':
+        if Path(file).suffix in ['.txt', '.ini', '.json']:
             log('    Copying {} to {}'.format(file_name, dir['output_path']), True)
             output_file = os.path.join(Path(dir['output_path']), file_name)
             shutil.copyfile(file, output_file)
 
     prepend_tag(dir, 'in', 'D')
     prepend_tag(dir, 'out', 'D')
-    append_folder_name(dir, 'in', '_DST')
-    append_folder_name(dir, 'out', '_DONE')
+    append_folder_name(dir, 'in', '_DestripeDone')
+    append_folder_name(dir, 'out', '_DestripeDone')
 
     log('Finished finishing {}'.format(dir['path']), True)
 
@@ -350,28 +370,16 @@ def abort(dir):
     # Perform tasks needed to respond to aborted acquisition
     
     log("Aborting {}...".format(dir['path']), True)
-    no_list.append(dir['path'])
-    if 'output_path' not in dir.keys():
-        log('    No output path for {}: aborting abortion'.format(dir['path']), True)
 
-    # convert .orig images back
     revert_images(dir)
-    
-    # prepend A to output metadata destripe tag
-    prepend_tag(dir, 'out', 'A')
+    append_folder_name(dir, 'in', '_AcqAborted')
 
-    # append _A to output directory name
-    if dir['output_path'][-2:] == '_A':
-        log('    _A already in output path', True)
-    else:
-        append_folder_name(dir, 'out', '_A')
-    
-    # append _A to input directory name
-    if dir['path'][-2:] == '_A':
-        log('    _A already in input path', True)
-    else:
-        append_folder_name(dir, 'in', '_A')
-
+    if os.path.exists(dir['output_path']):
+        prepend_tag(dir, 'out', 'A')
+        append_folder_name(dir, 'out', '_AcqAborted')
+        if os.path.exists(os.path.join(dir['output_path'], 'destriped_image_list.txt')):
+            os.remove(os.path.join(dir['output_path'], 'destriped_image_list.txt'))
+            
     log("Done aborting {}...".format(dir['path']), True)
 
 def count_processed_images(active_dir):
@@ -405,10 +413,14 @@ def update_message():
 def look_for_images():
     # Main loop
 
-    global active_dir, average_speed, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer, output_widget
+    global old_active, active_dir, average_speed, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer, output_widget, current_widget
     
     # update GUI
+
     update_message()
+
+    for item in current_widget.get_children():
+        current_widget.delete(item)
     for item in ac_queue.get_children():
         ac_queue.delete(item)
     
@@ -435,16 +447,27 @@ def look_for_images():
     # Add new acquisitions to GUI acquisition queue
     if len(acquisition_dirs) > 0:  
         active_dir = acquisition_dirs[0]
-        ac_queue.insert('', 'end', values=(
+        
+        new_time = datetime.now()
+        if os.path.relpath(active_dir['path'], input_dir) == old_active:
+            elapsed_time = delta_string(new_time, timer)
+        else:
+            old_active = os.path.relpath(active_dir['path'], input_dir)
+            timer = new_time
+            elapsed_time = delta_string(timer, timer)
+
+
+        print('processed_images: {}'.format(processed_images))
+        current_widget.insert('', 'end', values=(
             os.path.relpath(active_dir['path'], input_dir),
             processed_images,
-            active_dir['target_number']
+            active_dir['target_number'],
+            elapsed_time
         ))      
         for i in range(1, len(acquisition_dirs)):
             dir = acquisition_dirs[i]
             ac_queue.insert('', 'end', values=(
                 os.path.relpath(dir['path'], input_dir),
-                '0',
                 dir['target_number']
             ))
 
@@ -463,7 +486,7 @@ def look_for_images():
             procs.append(p)
             p.start()
     else:
-        ac_queue.insert('', 'end', values=('No new acquisitions found...', '', '', ''))
+        ac_queue.insert('', 'end', values=('The acquisition queue is empty...', '', '', ''))
         progress_bar['value'] = 0
     
     counter += 1 
@@ -510,15 +533,18 @@ def cancel_destripe():
         if not any(p.is_alive() for p in procs):
             no_list.append(active_dir['path'])
             revert_images(active_dir)
-            prepend_tag(active_dir, 'in', 'N/A')
-            prepend_tag(active_dir, 'out', 'N/A')
+            prepend_tag(active_dir, 'in', 'C')
+            prepend_tag(active_dir, 'out', 'C')
+
             image_list_path = os.path.join(active_dir['output_path'], 'destriped_image_list.txt')
             if os.path.exists(image_list_path):
                 os.remove(image_list_path)
+            append_folder_name(dir, 'in', '_DestripeCancelled')
+            append_folder_name(dir, 'out', '_DestripeCancelled')
             wait = False
 
 def build_gui():
-    global status_message, button_text, searching, ac_queue, output_widget, done_queue, progress_bar, cancel_button
+    global status_message, button_text, searching, ac_queue, output_widget, done_queue, progress_bar, cancel_button, current_widget
     root.title("Destripe GUI")
     icon_path = Path(__file__).parent / 'data/lct.ico'
     root.iconbitmap(icon_path)
@@ -532,52 +558,66 @@ def build_gui():
     status_label = ttk.Label(mainframe, textvariable=status_message)
 
     button_text = StringVar()
-    button_text.set('CANCEL PYSTRIPE')
+    button_text.set('CANCEL')
     searching = True
     cancel_button = ttk.Button(mainframe, textvariable=button_text, command=cancel_destripe, width=20)
     cancel_button['state'] = 'disabled'
     
-    progress_label = ttk.Label(mainframe, text='Current Acquisiton Progress: ')
-    progress_bar = ttk.Progressbar(mainframe, orient='horizontal', mode='determinate', length=630)
+    progress_label = ttk.Label(mainframe, text='Progress:')
+    progress_bar = ttk.Progressbar(mainframe, orient='horizontal', mode='determinate', length=520)
     
     output_label = ttk.Label(mainframe, text="Pystripe Output")
     output_widget = Text(mainframe, height=10, width=100)
 
     ac_label = ttk.Label(mainframe, text="Acquisition Queue")
-    columns = ('folder_name', 'processed', 'total_images')
+    columns = ('folder_name', 'total_images')
     ac_queue = ttk.Treeview(mainframe, columns=columns, show='headings', height=6)
     ac_queue.heading('folder_name', text='Folder Name')
-    ac_queue.column("folder_name", minwidth=0, width=560, stretch=NO)
-    ac_queue.heading('processed', text='Processed Images')
-    ac_queue.column("processed", minwidth=0, width=125, stretch=NO)
+    ac_queue.column("folder_name", minwidth=0, width=685, stretch=NO)
     ac_queue.heading('total_images', text='Total Images')
     ac_queue.column("total_images", minwidth=0, width=125, stretch=NO)
+
+    current_label = ttk.Label(mainframe, text="Currently Destriping:")
+    columns = ('folder_name', 'processed', 'total_images', 'time')
+    current_widget = ttk.Treeview(mainframe, columns=columns, show='headings', height=1)
+    current_widget.heading('folder_name', text='Folder Name')
+    current_widget.column("folder_name", minwidth=0, width=480, stretch=NO)
+    current_widget.heading('processed', text='Processed Images')
+    current_widget.column("processed", minwidth=0, width=110, stretch=NO)
+    current_widget.heading('total_images', text='Total Images')
+    current_widget.column("total_images", minwidth=0, width=110, stretch=NO)
+    current_widget.heading('time', text='Elapsed Time')
+    current_widget.column("time", minwidth=0, width=110, stretch=NO)
+ 
 
     done_label = ttk.Label(mainframe, text="Destriped Acquisitions")
     columns = ('folder_name', 'total_images')
     done_queue = ttk.Treeview(mainframe, columns=columns, show='headings', height=8)
     done_queue.heading('folder_name', text='Folder Name')
-    done_queue.column("folder_name", minwidth=0, width=560, stretch=NO)
+    done_queue.column("folder_name", minwidth=0, width=685, stretch=NO)
     done_queue.heading('total_images', text='Total Images')
-    done_queue.column("total_images", minwidth=0, width=250)
+    done_queue.column("total_images", minwidth=0, width=125)
     
     mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
     
     
+    current_label.grid(column=0, row=1, sticky=W, columnspan = 3)
+    current_widget.grid(column=0, row=2, sticky=W, columnspan = 3)
+
+    progress_label.grid(column=0, row=4, sticky=W,)
+    progress_bar.grid(column=1, row=4, sticky=W)
+
+    ac_label.grid(column=0, row=7, sticky=W)
+    ac_queue.grid(column=0, row=8, sticky=(W,E), columnspan = 3)
     
-    progress_label.grid(column=0, row=4, sticky=W, columnspan = 2)
-    progress_bar.grid(column=0, row=4, sticky=E, columnspan = 2)
-    ac_label.grid(column=0, row=5, sticky=W)
-    ac_queue.grid(column=0, row=6, sticky=(W,E), columnspan = 2)
     
-    
-    output_label.grid(column=0, row=7, sticky=W)
-    cancel_button.grid(column=1, row=7, sticky=E)
-    output_widget.grid(column=0, row=8, sticky=W, columnspan = 2)
+    output_label.grid(column=0, row=5, sticky=W)
+    cancel_button.grid(column=2, row=4, sticky=E)
+    output_widget.grid(column=0, row=6, sticky=W, columnspan = 3)
     
     done_label.grid(column=0, row=9, sticky=W)
-    done_queue.grid(column=0, row=10, sticky=(W,E), columnspan = 2)
-    status_label.grid(column=0, row=11, sticky=S, columnspan = 2)
+    done_queue.grid(column=0, row=10, sticky=(W,E), columnspan = 3)
+    status_label.grid(column=0, row=11, sticky=S, columnspan = 3)
     
     
     
@@ -585,10 +625,11 @@ def build_gui():
         child.grid_configure(padx=5, pady=5)
 
 def main():
-    global logs, config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path, wait
+    global logs, config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path, wait, old_active
+    timer = datetime.now()
+    old_active = ''
     wait = False
     logs = []
-    timer = 0
     counter = 0
     average_speed = [0,0]
     pystripe_running = False
