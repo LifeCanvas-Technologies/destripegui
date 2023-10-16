@@ -10,6 +10,10 @@ from tkinter import messagebox
 from datetime import datetime
 import traceback
 import shutil
+from win32event import CreateMutex
+from win32api import GetLastError
+from winerror import ERROR_ALREADY_EXISTS
+from sys import exit
 
 def delta_string(time2, time1):
     delta = time2 - time1
@@ -630,6 +634,13 @@ def build_gui():
 
 def main():
     global logs, config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path, wait, old_active
+    double_test = CreateMutex(None, 1, 'A unique mutex name')
+    if GetLastError(  ) == ERROR_ALREADY_EXISTS:
+        # Take appropriate action, as this is the second
+        # instance of this script; for example:
+        messagebox.showwarning('Multiple Instances', 'Another instance of destripegui is already running')
+        exit(1)
+
     timer = datetime.now()
     old_active = ''
     wait = False
