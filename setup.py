@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = "1.7.2"
+VERSION = "1.7.3"
 
 with open('README.md') as file:
     long_description = file.read()
@@ -14,7 +14,7 @@ CLASSIFIERS = [
 ]
 
 # calling the setup function 
-setuptools.setup(name='destripegui',
+setuptools.setup(name='destripegui_beta',
       version=VERSION,
       description='A GUI for automatic pystripe destriping',
       long_description=long_description,
