@@ -306,8 +306,8 @@ def finish_directory(dir, processed_images):
 
     prepend_tag(dir, 'in', 'D')
     prepend_tag(dir, 'out', 'D')
-    append_folder_name(dir, 'in', '_DestripeDone')
-    append_folder_name(dir, 'out', '_DestripeDone')
+    append_folder_name(dir, 'in', '_Destripe_DONE')
+    append_folder_name(dir, 'out', '_Destripe_DONE')
 
     log('Finished finishing {}'.format(dir['path']), True)
 
@@ -547,8 +547,8 @@ def cancel_destripe():
             image_list_path = os.path.join(active_dir['output_path'], 'destriped_image_list.txt')
             if os.path.exists(image_list_path):
                 os.remove(image_list_path)
-            append_folder_name(dir, 'in', '_DestripeCancelled')
-            append_folder_name(dir, 'out', '_DestripeCancelled')
+            append_folder_name(dir, 'in', '_Destripe_Cancelled')
+            append_folder_name(dir, 'out', '_Destripe_Cancelled')
             wait = False
 
 def build_gui():
