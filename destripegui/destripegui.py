@@ -187,7 +187,8 @@ def get_acquisition_dirs(input_dir, output_dir):
                 continue
             elif tag == 'A':
                 no_list.append(dir['path'])
-                if str(dir['path'])[-11:] != '_AcqAborted': abort(dir)
+                suffix_length = len(input_abort)
+                if str(dir['path'])[-suffix_length:] != input_abort: abort(dir)
                 log("Adding {} to No List because A flag set in metadata".format(dir['path']), True)
                 continue
             else: 
@@ -306,8 +307,8 @@ def finish_directory(dir, processed_images):
 
     prepend_tag(dir, 'in', 'D')
     prepend_tag(dir, 'out', 'D')
-    append_folder_name(dir, 'in', '_Destripe_DONE')
-    append_folder_name(dir, 'out', '_Destripe_DONE')
+    append_folder_name(dir, 'in', input_done)
+    append_folder_name(dir, 'out', output_done)
 
     log('Finished finishing {}'.format(dir['path']), True)
 
@@ -380,11 +381,11 @@ def abort(dir):
     log("Aborting {}...".format(dir['path']), True)
 
     revert_images(dir)
-    append_folder_name(dir, 'in', '_AcqAborted')
+    append_folder_name(dir, 'in', input_abort)
 
     if os.path.exists(dir['output_path']):
         prepend_tag(dir, 'out', 'A')
-        append_folder_name(dir, 'out', '_AcqAborted')
+        append_folder_name(dir, 'out', output_abort)
         if os.path.exists(os.path.join(dir['output_path'], 'destriped_image_list.txt')):
             os.remove(os.path.join(dir['output_path'], 'destriped_image_list.txt'))
             
@@ -547,8 +548,8 @@ def cancel_destripe():
             image_list_path = os.path.join(active_dir['output_path'], 'destriped_image_list.txt')
             if os.path.exists(image_list_path):
                 os.remove(image_list_path)
-            append_folder_name(dir, 'in', '_Destripe_Cancelled')
-            append_folder_name(dir, 'out', '_Destripe_Cancelled')
+            append_folder_name(dir, 'in', input_cancel)
+            append_folder_name(dir, 'out', output_cancel)
             wait = False
 
 def build_gui():
@@ -633,7 +634,7 @@ def build_gui():
         child.grid_configure(padx=5, pady=5)
 
 def main():
-    global logs, config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path, wait, old_active
+    global logs, config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path, wait, old_active, input_done, output_done, input_cancel, output_cancel, input_abort, output_abort
     double_test = CreateMutex(None, 1, 'A unique mutex name')
     if GetLastError(  ) == ERROR_ALREADY_EXISTS:
         # Take appropriate action, as this is the second
@@ -659,6 +660,16 @@ def main():
     try:
         input_dir = Path(configs['paths']['input_dir'])
         output_dir = Path(configs['paths']['output_dir'])
+
+        input_done = configs['suffixes']['input_done']
+        output_done = configs['suffixes']['output_done']
+
+        input_cancel = configs['suffixes']['input_cancel']
+        output_cancel = configs['suffixes']['output_cancel']
+
+        input_abort = configs['suffixes']['input_abort']
+        output_abort = configs['suffixes']['output_abort']
+
         log('----------------   RESTART  -----------------', True)
         log('Input Directory: {}'.format(input_dir), True)
         log('Output Directory: {}'.format(output_dir), True)
