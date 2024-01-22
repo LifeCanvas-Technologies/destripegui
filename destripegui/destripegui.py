@@ -167,6 +167,7 @@ def get_acquisition_dirs(input_dir, output_dir):
     unfinished_dirs = []    
     for dir in ac_dirs:
         destripe_string = dir['metadata']['Destripe']
+        print('destripe_string: {}'.format(destripe_string))
         try:
             tag = ''
             for s in ['N', 'C', 'D', 'A']:
@@ -344,11 +345,12 @@ def prepend_tag(dir, drive, msg):
             reader = csv.reader(f, dialect='excel', delimiter='\t')
             line_list = list(reader)
         os.remove(metadata_path)
-        destripe = line_list[1][6]
+        destripe_position = line_list[0].index('Destripe')
+        destripe = line_list[1][destripe_position]
         log("    Adding '{}' to Destripe metadata tag in {}".format(msg, metadata_path), True)
         if (msg in destripe): log('    "{}" already in output metadata'.format(msg))
-        else: 
-            line_list[1][6] = msg + destripe
+        else:
+            line_list[1][destripe_position] = msg + destripe
             with open(metadata_path, 'w', newline='') as f:
                 writer = csv.writer(f, dialect='excel', delimiter='\t')
                 for row in line_list:
