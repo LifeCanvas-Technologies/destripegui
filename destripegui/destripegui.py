@@ -30,9 +30,9 @@ def delta_string(time2, time1):
     return time_string
 
 def progress_write(dir, msg):
-    file_path = os.path.join(output_path, progress_log)
+    file_path = os.path.join(dir, progress_log)
     with open(file_path, "a") as f:
-        time = now.strftime("%H:%M:%S %m/%d/%Y")
+        time = datetime.now().strftime("%H:%M:%S %m/%d/%Y")
         f.write("{}  -  {}\n".format(time, msg))
 
 def log(message, repeat):
@@ -295,6 +295,8 @@ def finish_directory(dir, processed_images):
     log('    Adding {} to No List'.format(dir['path']), True)
     log('    Is pystripe running?: {}'.format(any(p.is_alive() for p in procs)), True)
     progress_write(dir['path'], "Finished destriping {} images".format(processed_images))
+    duration = datetime.now() - start_time
+    progress_write(dir['path'], "Total time elapsed: {}".format(str(duration)))
 
     # add folder to "done queue"
     done_queue.insert('', 'end', values=(
@@ -430,7 +432,7 @@ def update_message():
 def look_for_images():
     # Main loop
 
-    global old_active, active_dir, average_speed, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer, output_widget, current_widget
+    global start_time, old_active, active_dir, average_speed, progress_bar, searching, root, ac_queue, input_dir, output_dir, configs, procs, pystripe_running, counter, status_message, timer, output_widget, current_widget
     
     # update GUI
 
@@ -498,8 +500,9 @@ def look_for_images():
             with open('pystripe_output.txt', 'w') as f:
                 f.close()
             get_pystripe_output()
-
-            progress_write(active_dir['path'], "Starting pystripe batch.  {} images have been processed.")
+            if processed_images == 0:
+                start_time = datetime.now()
+            progress_write(active_dir['path'], "Starting pystripe batch.  {} images have been processed.".format(processed_images))
             p = multiprocessing.Process(target=run_pystripe, args=(active_dir, configs, log_path))
             # p.daemon = True
             procs.append(p)
@@ -652,6 +655,7 @@ def main():
         messagebox.showwarning('Multiple Instances', 'Another instance of destripegui is already running')
         exit(1)
 
+    start_time = 0
     timer = datetime.now()
     old_active = ''
     wait = False
