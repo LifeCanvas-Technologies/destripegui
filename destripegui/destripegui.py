@@ -29,6 +29,11 @@ def delta_string(time2, time1):
     else: time_string = "{}s".format(seconds)
     return time_string
 
+def progress_write(dir, msg):
+    file_path = os.path.join(output_path, progress_log)
+    with open(file_path, "a") as f:
+        time = now.strftime("%H:%M:%S %m/%d/%Y")
+        f.write("{}  -  {}\n".format(time, msg))
 
 def log(message, repeat):
     if not repeat:
@@ -289,6 +294,7 @@ def finish_directory(dir, processed_images):
     no_list.append(dir['path'])
     log('    Adding {} to No List'.format(dir['path']), True)
     log('    Is pystripe running?: {}'.format(any(p.is_alive() for p in procs)), True)
+    progress_write(dir['path'], "Finished destriping {} images".format(processed_images))
 
     # add folder to "done queue"
     done_queue.insert('', 'end', values=(
@@ -492,6 +498,8 @@ def look_for_images():
             with open('pystripe_output.txt', 'w') as f:
                 f.close()
             get_pystripe_output()
+
+            progress_write(active_dir['path'], "Starting pystripe batch.  {} images have been processed.")
             p = multiprocessing.Process(target=run_pystripe, args=(active_dir, configs, log_path))
             # p.daemon = True
             procs.append(p)
@@ -636,7 +644,7 @@ def build_gui():
         child.grid_configure(padx=5, pady=5)
 
 def main():
-    global logs, config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path, wait, old_active, input_done, output_done, input_cancel, output_cancel, input_abort, output_abort
+    global start_time, progress_log, logs, config_path, configs, input_dir, output_dir, root, procs, pystripe_running, counter, timer, no_list, average_speed, log_path, wait, old_active, input_done, output_done, input_cancel, output_cancel, input_abort, output_abort
     double_test = CreateMutex(None, 1, 'A unique mutex name')
     if GetLastError(  ) == ERROR_ALREADY_EXISTS:
         # Take appropriate action, as this is the second
@@ -658,6 +666,7 @@ def main():
     procs = []
     no_list = []
     root = Tk()
+    progress_log = configs['paths']['progress_log']
     
     try:
         input_dir = Path(configs['paths']['input_dir'])
