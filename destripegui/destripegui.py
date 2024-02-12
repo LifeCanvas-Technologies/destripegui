@@ -1,4 +1,3 @@
-import pystripe
 import os, sys, time, csv, re
 import math
 import multiprocessing
@@ -14,6 +13,12 @@ from win32event import CreateMutex
 from win32api import GetLastError
 from winerror import ERROR_ALREADY_EXISTS
 from sys import exit
+import torch
+
+# from destripegui.destripe.core import batch_filter as cpu_destripe
+from destripegui.destripe.core import main as cpu_destripe
+from destripegui.destripe.core_gpu import main as gpu_destripe
+from destripegui.destripe import supported_extensions 
 
 def delta_string(time2, time1):
     delta = time2 - time1
@@ -82,16 +87,37 @@ def run_pystripe(dir, configs, log_path):
     sigma = list(int(sig_str) for sig_str in sig_strs)
     workers = int(configs['params']['workers'])
     chunks = int(configs['params']['chunks'])
-    
+    use_gpu = int(configs["params"]["use_gpu"])
+    gpu_chunksize = int(configs["params"]["gpu_chunksize"])
+
     with open('pystripe_output.txt', 'w') as f:
         sys.stdout = f
         sys.stderr = f
-        pystripe.batch_filter(input_path,
-                    output_path,
-                    workers=workers,
-                    chunks=chunks,
-                    sigma=sigma,
-                    auto_mode=True)
+        # pystripe.batch_filter(input_path,
+        #             output_path,
+        #             workers=workers,
+        #             chunks=chunks,
+        #             sigma=sigma,
+        #             auto_mode=True)
+        if torch.cuda.is_available() and use_gpu:
+            print("GPU Destripe")
+            gpu_destripe(["-i", str(input_path),
+                          "-o", str(output_path), 
+                          "--sigma1", str(sigma[0]),
+                          "--sigma2", str(sigma[1]),
+                          "--gpu-chunksize", str(gpu_chunksize),
+                          "--extra-smoothing", "True",
+                          "--auto-mode"])
+        else:
+            print("CPU destripe")
+            cpu_destripe(["-i", str(input_path),
+                          "-o", str(output_path), 
+                          "--sigma1", str(sigma[0]),
+                          "--sigma2", str(sigma[1]),
+                          "--workers", str(workers),
+                          "--chunks", str(chunks),
+                          "--auto-mode"])
+            # cpu_destripe(input_path, output_path, workers, chunks, sigma)
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
     
@@ -100,7 +126,6 @@ def run_pystripe(dir, configs, log_path):
 
 def rename_images(dir, log_path):
     # Appends .orig to images that have been destriped, after batch_filter finishes.  On same async thread as run_pystripe
-
     output_path = dir['output_path']
     input_path = dir['path']
     file_path = os.path.join(output_path, 'destriped_image_list.txt')
@@ -110,6 +135,7 @@ def rename_images(dir, log_path):
     pystripe_log('Appending .orig to {} images in {}...'.format(str(images_len), input_path), log_path)
 
     for image in image_list:
+        print(image)
         image = image.strip()
         try:
             os.rename(image, image + '.orig')
@@ -172,7 +198,7 @@ def get_acquisition_dirs(input_dir, output_dir):
     unfinished_dirs = []    
     for dir in ac_dirs:
         destripe_string = dir['metadata']['Destripe']
-        print('destripe_string: {}'.format(destripe_string))
+        #print('destripe_string: {}'.format(destripe_string))
         try:
             tag = ''
             for s in ['N', 'C', 'D', 'A']:
@@ -406,7 +432,7 @@ def count_processed_images(active_dir):
 
     log("Begin image count for {}".format(active_dir['output_path']), False)
     processed_images = 0
-    extensions = pystripe.core.supported_extensions
+    extensions = supported_extensions
     for (root, dirs, files) in os.walk(active_dir['output_path']):
         for file in files:
             if Path(file).suffix in extensions:
@@ -476,7 +502,7 @@ def look_for_images():
             elapsed_time = delta_string(timer, timer)
 
 
-        print('processed_images: {}'.format(processed_images))
+        #print('processed_images: {}'.format(processed_images))
         current_widget.insert('', 'end', values=(
             os.path.relpath(active_dir['path'], input_dir),
             processed_images,
@@ -507,6 +533,7 @@ def look_for_images():
             # p.daemon = True
             procs.append(p)
             p.start()
+            # run_pystripe(active_dir, configs, log_path)
     else:
         ac_queue.insert('', 'end', values=('The acquisition queue is empty...', '', '', ''))
         progress_bar['value'] = 0

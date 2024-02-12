@@ -1,16 +1,16 @@
 import setuptools
 
-VERSION = "1.8.1"
+VERSION = "2.0.0"
 
 with open('README.md') as file:
     long_description = file.read()
 
-REQUIREMENTS = ['pystripe']
+# REQUIREMENTS = ['pystripe']
 
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
-    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.11',
 ]
 
 # calling the setup function 
@@ -26,7 +26,7 @@ setuptools.setup(name='destripegui_beta',
       include_package_data=True,
       package_data={'': ['data/config.ini', 'data/lct.ico', 'data/DestripeGUI.exe']},
       classifiers=CLASSIFIERS,
-      install_requires=REQUIREMENTS,
+      # install_requires=REQUIREMENTS,
       entry_points={
         'console_scripts' : ['destripegui=destripegui.destripegui:main']
       }
