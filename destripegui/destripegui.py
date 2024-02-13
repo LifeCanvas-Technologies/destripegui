@@ -135,7 +135,6 @@ def rename_images(dir, log_path):
     pystripe_log('Appending .orig to {} images in {}...'.format(str(images_len), input_path), log_path)
 
     for image in image_list:
-        print(image)
         image = image.strip()
         try:
             os.rename(image, image + '.orig')
