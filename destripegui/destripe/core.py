@@ -610,7 +610,7 @@ def read_filter_save(output_root_dir, input_path, output_path, sigma, level=0, w
     # Save image, retry if OSError for NAS
     for _ in range(nb_retry):
         try:
-            imsave(str(output_path), fimg.astype(dtype), compression=compression, output_format=output_format, rotate_and_flip=True)
+            imsave(str(output_path), fimg.astype(dtype), compression=compression, output_format=output_format, rotate_and_flip=False)
         except OSError:
             print('Retrying...')
             continue
