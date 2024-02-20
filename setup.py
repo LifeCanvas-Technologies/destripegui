@@ -7,14 +7,13 @@ with open('README.md') as file:
 
 # REQUIREMENTS = ['pystripe']
 
-
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'Programming Language :: Python :: 3.11',
 ]
 
 # calling the setup function 
-setuptools.setup(name='destripegui_beta',
+setuptools.setup(name='destripegui_gpu',
       version=VERSION,
       description='A GUI for automatic pystripe destriping',
       long_description=long_description,
@@ -28,6 +27,8 @@ setuptools.setup(name='destripegui_beta',
       classifiers=CLASSIFIERS,
       # install_requires=REQUIREMENTS,
       entry_points={
-        'console_scripts' : ['destripegui=destripegui.destripegui:main']
+        'console_scripts' : ['destripegui=destripegui.destripegui:main',
+                             'cpu-destripe=destripegui.destripe.core:main',
+                              'gpu-destripe=destripegui.destripe.core_gpu:main']
       }
 )
