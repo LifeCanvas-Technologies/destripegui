@@ -268,7 +268,8 @@ class Destriper:
 
                     # Option: use imap 
                     f = partial(attempt_read_threshold, threshold_prompt=self.provided_threshold)
-                    imgs_and_thresholds = list(tqdm.tqdm(p.imap(f, inputs_paths), total=len(inputs_paths)))
+                    # imgs_and_thresholds = list(tqdm.tqdm(p.imap(f, inputs_paths), total=len(inputs_paths)))
+                    imgs_and_thresholds = list(p.imap(f, inputs_paths))
                     imgs, thresholds = zip(*imgs_and_thresholds)
             else:
                 imgs, thresholds = zip(*[self._single_read(args) for args in args_batch])
@@ -584,6 +585,7 @@ class Destriper:
         with tqdm.tqdm(total=(len(args)), ascii=True, bar_format=None) as pbar:
 
             for load_batch in load_args:
+                # print('Loading batch #{}'.format(batch_counter))
                 if True:#with multiprocessing.Pool(processes=16) as p:
                     def torch_imwrite3( imgs_chunk, args_chunk):
                         """
@@ -665,18 +667,18 @@ class Destriper:
                         pbar.update(len(last_args_chunk))
                         # del last_imgs_chunk; del last_args_chunk
                     batch_counter += 1
-            print('Done!')
+                # print('Done!')
 
-            # Interpolate images that could not be opened
-            if os.path.exists(error_path):
-                with open(error_path, 'r') as fp:
-                    first_line = fp.readline()  # seems to purposefully not use this line
-                    images = fp.readlines()
-                    for image_path in images:
-                        interpolate(image_path, self.input_path, self.output_path)
-                    x = len(images)
-                    print('{} images could not be opened and were interpolated.  See destripe log for more details'.format(x))
-                    fp.close()
+                # Interpolate images that could not be opened
+                if os.path.exists(error_path):
+                    with open(error_path, 'r') as fp:
+                        first_line = fp.readline()  # seems to purposefully not use this line
+                        images = fp.readlines()
+                        for image_path in images:
+                            interpolate(image_path, self.input_path, self.output_path)
+                        x = len(images)
+                        print('{} images could not be opened and were interpolated.  See destripe log for more details'.format(x))
+                        fp.close()
 
 
 def _parse_args(raw_args=None):
@@ -728,6 +730,7 @@ def parse_extra_smoothing(arg_extra_smoothing: str) -> Union[int, bool, float]:
             raise argparse.ArgumentTypeError(msg)
 
 def main(raw_args=None):
+    # print("Starting GPU destriping...")
     args = _parse_args(raw_args)
     sigma = [args.sigma1, args.sigma2]
 

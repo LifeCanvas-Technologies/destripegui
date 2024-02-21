@@ -100,7 +100,7 @@ def run_pystripe(dir, configs, log_path):
         #             sigma=sigma,
         #             auto_mode=True)
         if torch.cuda.is_available() and use_gpu:
-            print("GPU Destripe")
+            print("Using GPU Destriper")
             gpu_destripe(["-i", str(input_path),
                           "-o", str(output_path), 
                           "--sigma1", str(sigma[0]),
@@ -109,7 +109,7 @@ def run_pystripe(dir, configs, log_path):
                           "--extra-smoothing", "True",
                           "--auto-mode"])
         else:
-            print("CPU destripe")
+            print("Using CPU Destriper")
             cpu_destripe(["-i", str(input_path),
                           "-o", str(output_path), 
                           "--sigma1", str(sigma[0]),
