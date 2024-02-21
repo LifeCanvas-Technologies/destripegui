@@ -1,3 +1,5 @@
+call conda env remove -n destripegui_gpu
+
 call conda env create -f environment.yml
 
 call conda activate destripegui_gpu
