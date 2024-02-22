@@ -165,6 +165,8 @@ class Destriper:
             return 24
         elif os.cpu_count() <= 64:
             return 32
+        elif os.cpu_count() >= 120:
+            return 60 
         else:
             # return int(0.60 * os.cpu_count())
             return os.cpu_count()
