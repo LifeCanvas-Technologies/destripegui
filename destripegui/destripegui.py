@@ -14,7 +14,7 @@ from win32api import GetLastError
 from winerror import ERROR_ALREADY_EXISTS
 from sys import exit
 import torch
-import glob 
+import subprocess
 
 # from destripegui.destripe.core import batch_filter as cpu_destripe
 from destripegui.destripe.core import main as cpu_destripe
@@ -348,8 +348,9 @@ def finish_directory(dir, processed_images):
 
     log('Finished finishing {}'.format(dir['path']), True)
 
-def append_folder_name(dir, drive, msg):
+def append_folder_name(dir, drive, msg, attempts = 0):
     # Update folder name after abort or pystripe finish
+    MAX_ATTEMPTS = 100
 
     if drive == 'in':
         path = dir['path'] 
@@ -366,7 +367,16 @@ def append_folder_name(dir, drive, msg):
     except:
         log("    An error occurred while renaming {}:".format(path), True)
         log(traceback.format_exc(), True)
-        append_folder_name(dir, drive, msg)
+        subprocess.run(["ren", path, new_path])
+        # attempts += 1
+        # if attempts < MAX_ATTEMPTS:
+        #     log("   %d attempts made to rename %s, retrying..."%(attempts, path), True)
+        #     append_folder_name(dir, drive, msg, attempts)
+        # else:
+        #     log("    An error occurred while renaming {}:".format(path), True)
+        #     log(traceback.format_exc(), True)
+        #     log("Unable to rename %s after %d attempts"%(path, attempts), True)
+        
         return False
 
 def prepend_tag(dir, drive, msg):
