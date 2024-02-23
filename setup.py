@@ -29,6 +29,7 @@ setuptools.setup(name='destripegui_gpu',
       entry_points={
         'console_scripts' : ['destripegui=destripegui.destripegui:main',
                              'cpu-destripe=destripegui.destripe.core:main',
-                              'gpu-destripe=destripegui.destripe.core_gpu:main']
+                              'gpu-destripe=destripegui.destripe.core_gpu:main',
+                              'revert_from_orig=destripegui.revert_from_orig:main',]
       }
 )

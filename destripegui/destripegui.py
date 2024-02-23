@@ -14,9 +14,11 @@ from win32api import GetLastError
 from winerror import ERROR_ALREADY_EXISTS
 from sys import exit
 import torch
+import glob 
 
 # from destripegui.destripe.core import batch_filter as cpu_destripe
 from destripegui.destripe.core import main as cpu_destripe
+from destripegui.destripe.utils import find_all_images
 from destripegui.destripe.core_gpu import main as gpu_destripe
 from destripegui.destripe import supported_extensions 
 
@@ -364,6 +366,7 @@ def append_folder_name(dir, drive, msg):
     except:
         log("    An error occurred while renaming {}:".format(path), True)
         log(traceback.format_exc(), True)
+        append_folder_name(dir, drive, msg)
         return False
 
 def prepend_tag(dir, drive, msg):
@@ -478,20 +481,29 @@ def look_for_images():
     
     # get acquisition directories
     acquisition_dirs = get_acquisition_dirs(input_dir, output_dir)
-        
     # finish if done
     if len(acquisition_dirs) > 0:
         active_dir = acquisition_dirs[0]
         processed_images = count_processed_images(active_dir)
+        # log("Pystripe running" + str(pystripe_running), True)
+         
         if processed_images >= active_dir['target_number'] and pystripe_running == False:
-            finish_directory(active_dir, processed_images)
-            acquisition_dirs.remove(active_dir)
-            average_speed = [0,0]
+            
+            # use find_all_images to get if there any new images in the directory
+            num_imgs = find_all_images(active_dir["path"], active_dir["path"], active_dir["path"])
+            # log("num_imgs: "+str(len(num_imgs)), True)
+
+            if len(num_imgs) == 0:
+                # Finish the directory 
+                # log("finishing "+ str(processed_images) + " " + str(active_dir['target_number']), True)
+
+                finish_directory(active_dir, processed_images)
+                acquisition_dirs.remove(active_dir)
+                average_speed = [0,0]
             
     # Add new acquisitions to GUI acquisition queue
     if len(acquisition_dirs) > 0:  
         active_dir = acquisition_dirs[0]
-        
         new_time = datetime.now()
         if os.path.relpath(active_dir['path'], input_dir) == old_active:
             elapsed_time = delta_string(new_time, timer)
