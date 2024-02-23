@@ -23,3 +23,6 @@ Instructions for installing GPU Live Destriping GUI:
 3. GPU destriping options
    * ```gpu-destripe --input <Input Directory> --output <Output Directory> --sigma1 <SIGMA1> --sigma2 <SIGMA2> --extra-smoothing True --gpu-chunksize 64```
    * Leave the ```extra-smoothing``` option to be True, and use 64 for gpu-chunksize unless the GPU is not a 4090 (which has 24GB vRAM. You may have to make it less for GPUs with less than that, and you can increase it for GPUs with larger vRAM)
+4. Convert back from .orig renaming
+  * ```revert_from_orig --dir <input directory>```
+  * Images that are destriped are renamed as ".orig" during live destriping. In the unlikely event where the process is stopped (due to the computer shutting down, etc), and there are .origs left in the directory that you would like to be converted back to normal, can run this to easily convert it. 
