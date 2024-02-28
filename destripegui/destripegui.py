@@ -107,6 +107,7 @@ def run_pystripe(dir, configs, log_path):
                           "-o", str(output_path), 
                           "--sigma1", str(sigma[0]),
                           "--sigma2", str(sigma[1]),
+                          "--cpu-readers", str(workers), 
                           "--gpu-chunksize", str(gpu_chunksize),
                           "--extra-smoothing", "True",
                           "--auto-mode"])
