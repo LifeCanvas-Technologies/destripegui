@@ -497,16 +497,18 @@ def look_for_images():
         active_dir = acquisition_dirs[0]
         processed_images = count_processed_images(active_dir)
         # log("Pystripe running" + str(pystripe_running), True)
-         
+        print("processed_images: ", processed_images)
+        print(pystripe_running)
         if processed_images >= active_dir['target_number'] and pystripe_running == False:
             
             # use find_all_images to get if there any new images in the directory
+            time.sleep(10) # allow it to gather images 
             num_imgs = find_all_images(active_dir["path"], active_dir["path"], active_dir["path"])
-            # log("num_imgs: "+str(len(num_imgs)), True)
+            log("num_imgs: "+str(len(num_imgs)), True)
 
             if len(num_imgs) == 0:
                 # Finish the directory 
-                # log("finishing "+ str(processed_images) + " " + str(active_dir['target_number']), True)
+                log("finishing "+ str(processed_images) + " " + str(active_dir['target_number']), True)
 
                 finish_directory(active_dir, processed_images)
                 acquisition_dirs.remove(active_dir)
