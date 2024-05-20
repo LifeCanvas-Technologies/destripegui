@@ -22,6 +22,8 @@ from destripegui.destripe.utils import find_all_images
 from destripegui.destripe.core_gpu import main as gpu_destripe
 from destripegui.destripe import supported_extensions 
 
+PYSTRIPE_OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "data", "pystripe_output.txt")
+
 def delta_string(time2, time1):
     delta = time2 - time1
     seconds = delta.seconds
@@ -90,9 +92,10 @@ def run_pystripe(dir, configs, log_path):
     workers = int(configs['params']['workers'])
     chunks = int(configs['params']['chunks'])
     use_gpu = int(configs["params"]["use_gpu"])
+    cpu_readers = int(configs["params"]["cpu_readers"])
     gpu_chunksize = int(configs["params"]["gpu_chunksize"])
 
-    with open('pystripe_output.txt', 'w') as f:
+    with open(PYSTRIPE_OUTPUT_PATH, 'w') as f:
         sys.stdout = f
         sys.stderr = f
         # pystripe.batch_filter(input_path,
@@ -107,7 +110,7 @@ def run_pystripe(dir, configs, log_path):
                           "-o", str(output_path), 
                           "--sigma1", str(sigma[0]),
                           "--sigma2", str(sigma[1]),
-                          "--cpu-readers", str(workers), 
+                          "--cpu-readers", str(cpu_readers), 
                           "--gpu-chunksize", str(gpu_chunksize),
                           "--extra-smoothing", "True",
                           "--auto-mode"])
@@ -547,7 +550,7 @@ def look_for_images():
         # if pystripe is done and @ %5 seconds, run new pystripe batch
         if pystripe_running == False and counter % 5 == 0 and wait == False:
             pystripe_running = True
-            with open('pystripe_output.txt', 'w') as f:
+            with open(PYSTRIPE_OUTPUT_PATH, 'w') as f:
                 f.close()
             get_pystripe_output()
             if processed_images == 0:
@@ -574,7 +577,7 @@ def update_average_speed(new_speed):
     
 def get_pystripe_output():
     global output_widget, pystripe_running, pystripe_progess, average_speed
-    with open('pystripe_output.txt', 'r') as f:
+    with open(PYSTRIPE_OUTPUT_PATH, 'r') as f:
         line_list = f.readlines()
     output_widget.delete(1.0, 'end')
     
