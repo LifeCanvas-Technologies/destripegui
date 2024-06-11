@@ -742,7 +742,7 @@ def batch_filter(input_path, output_path, workers, chunks, sigma, level=0, wavel
         workers = multiprocessing.cpu_count()
     print('Looking for images in {}...'.format(input_path))
     img_paths = _find_all_images(input_path, input_path, output_path, zstep)
-    print('Fo00und {} compatible images'.format(len(img_paths)))
+    print('Found {} compatible images'.format(len(img_paths)))
     # if auto_mode:
         # count_path = os.path.join(input_path, 'image_count.txt')
         # print('count_path: {} count: {}'.format(count_path, len(img_paths)))
@@ -980,7 +980,7 @@ def main(raw_args=None):
                      output_format=args.output_format
                      )
     else:
-        print('Cannot find input fi00le or directory. Exiting...')
+        print('Cannot find input file or directory. Exiting...')
 
 
 if __name__ == "__main__":

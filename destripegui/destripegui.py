@@ -29,17 +29,25 @@ def get_configs(config_path):
     config.read(config_path)
     return config
 
-def run_pystripe(input_path, output_path):
+def run_pystripe(input_path, output_path, current_dir):
     # input_path = Path(dir['path'])
     # output_path = Path(dir['output_path'])
-    # sig_strs = dir['metadata']['Destripe'].split('/')
-    # sigma = list(int(sig_str) for sig_str in sig_strs)
-    sigma = [256, 0]
+    sig_strs = current_dir['metadata']['Destripe'].split('/')
+    sigma = list(int(sig_str) for sig_str in sig_strs)
+
+    # sigma = [256, 0]
     workers = int(configs['params']['workers'])
     chunks = int(configs['params']['chunks'])
     use_gpu = int(configs["params"]["use_gpu"])
     cpu_readers = int(configs["params"]["cpu_readers"])
     gpu_chunksize = int(configs["params"]["gpu_chunksize"])
+
+    contents = os.listdir(input_path)
+    if len(contents) == 1:
+        # input_path = os.path.join(input_path, contents[0])
+        # output_path = os.path.join(output_path, contents[0])
+        use_gpu = 0
+
     if torch.cuda.is_available() and use_gpu:
         print("Using GPU Destriper")
         gpu_destripe(["-i", str(input_path),
@@ -211,8 +219,8 @@ def get_acquisition_dirs():
                 continue
             elif tag == 'A':
                 no_list.append(dir['path'])
-                suffix_length = len(input_abort)
-                if str(dir['path'])[-suffix_length:] != input_abort: abort(dir)
+                # suffix_length = len(input_abort)
+                # if str(dir['path'])[-suffix_length:] != input_abort: abort(dir)
                 # log("Adding {} to No List because A flag set in metadata".format(dir['path']), True)
                 continue
             else: 
@@ -229,34 +237,40 @@ def get_acquisition_dirs():
 def count_tiles(dir):
     tiles = []
     for tile in dir['metadata']['tiles']:
-        if tile['Skip'] == '1':
-            laser = tile['Laser']
-            filter = tile['Filter']
-            x = tile['X']
-            y = tile['Y']
-            tile_path = os.path.join('Ex_{}_Ch{}'.format(laser, filter), x, '{}_{}'.format(x, y))
-            input_images = len(os.listdir(os.path.join(dir['path'], tile_path)))
-            try:
-                output_images = len(os.listdir(os.path.join(dir['output_path'], tile_path)))
-            except:
-                output_images = 0
-                            
-            tiles.append(
-                {'path': tile_path, 'input_images': input_images, 'output_images': output_images}
-            )
+        if tile['Skip'] == '0':
+            expected = 1
+        else:
+            expected = dir['target_per_tile']
+        laser = tile['Laser']
+        filter = tile['Filter']
+        x = tile['X']
+        y = tile['Y']
+        tile_path = os.path.join('Ex_{}_Ch{}'.format(laser, filter), x, '{}_{}'.format(x, y))
+        input_images = len(os.listdir(os.path.join(dir['path'], tile_path)))
+        try:
+            output_images = len(os.listdir(os.path.join(dir['output_path'], tile_path)))
+        except:
+            output_images = 0      
+        tiles.append({
+            'path': tile_path,
+            'input_images': input_images,
+            'output_images': output_images,
+            'expected': expected
+        })
+    # tiles.sort(key=lambda x: x['path'])
     dir['tiles'] = tiles
 
 def show_output(ac_dirs, current_dir):
-    headers = ['Tile', 'Images on Acquisition Drive', 'Images on Stitch Drive']
+    headers = ['Tile', 'Images Expected', 'Images on Acquisition Drive', 'Images on Stitch Drive']
     data = []
     for tile in current_dir['tiles']:
         data.append([
             tile['path'],
+            tile['expected'],
             tile['input_images'],
             tile['output_images']
         ])
-    print('\nCurrent Acquisition: {}'.format(current_dir['path']))
-    print('Expected number of images per tile: {}\n'.format(current_dir['target_per_tile']))
+    print('Current Acquisition: {}\n'.format(current_dir['path']))
     print(tabulate(data, headers))
     if len(ac_dirs) > 1:
         print('\nAdditional Acquisitions in Destriping Queue:')
@@ -275,9 +289,10 @@ def check_mips(current_dir):
 
             if len(os.listdir(input_path)) != output_images:
                 print('\nDestriping {}...\n'.format(item))
-                run_pystripe(input_path, output_path)
+                run_pystripe(input_path, output_path, current_dir)
 
 def finish_directory(dir):
+    # print('finishing {}'.format(dir['path']))
     # Perform tasks needed once directory is finished destriping
 
     # log('Finishing {}...'.format(dir['path']), True)
@@ -314,18 +329,27 @@ def finish_directory(dir):
 
 def append_folder_name(dir, drive, msg, attempts = 0):
     # Update folder name after abort or pystripe finish
-    MAX_ATTEMPTS = 100
+    # MAX_ATTEMPTS = 100
 
     if drive == 'in':
         path = dir['path'] 
     else:
         path = dir['output_path']
-    split = os.path.split(path)
-    new_dir_name = split[1] + msg
-    new_path = os.path.join(split[0], new_dir_name)
-    
 
-    os.rename(path, new_path)
+    try:
+        os.listdir(path)
+    except:
+        print('Cannot access {} to rename folder')
+        x = input('Make sure it is accessible and not open in another program, then press Enter...\n')
+        append_folder_name(dir, drive, msg)
+
+    split = os.path.split(path)
+    if msg not in split[1]:
+        new_dir_name = split[1] + msg
+        new_path = os.path.join(split[0], new_dir_name)
+        
+
+        os.rename(path, new_path)
 
     # try:
     #     os.rename(path, new_path)
@@ -356,21 +380,35 @@ def prepend_tag(dir, drive, msg):
     with open(metadata_path, errors="ignore") as f:
         reader = csv.reader(f, dialect='excel', delimiter='\t')
         line_list = list(reader)
-    os.remove(metadata_path)
     destripe_position = line_list[0].index('Destripe')
     destripe = line_list[1][destripe_position]
     # log("    Adding '{}' to Destripe metadata tag in {}".format(msg, metadata_path), True)
     # if (msg in destripe): log('    "{}" already in output metadata'.format(msg))
     # else:
-    line_list[1][destripe_position] = msg + destripe
-    with open(metadata_path, 'w', newline='') as f:
-        writer = csv.writer(f, dialect='excel', delimiter='\t')
-        for row in line_list:
-            writer.writerow(row)
-    
+    if msg not in destripe:
+        line_list[1][destripe_position] = msg + destripe
+        os.remove(metadata_path)
+        with open(metadata_path, 'w', newline='') as f:
+            writer = csv.writer(f, dialect='excel', delimiter='\t')
+            for row in line_list:
+                writer.writerow(row)
 
+def abort(dir):
+    # Perform tasks needed to respond to aborted acquisition
+    
+    print("\nAborting {}...\n".format(dir['path']))
+
+    prepend_tag(dir, 'in', 'A')
+    append_folder_name(dir, 'in', configs['suffixes']['input_abort'])
+
+    if os.path.exists(dir['output_path']):
+        if os.path.exists(os.path.join(dir['output_path'], 'metadata.txt')):
+            prepend_tag(dir, 'out', 'A')
+        append_folder_name(dir, 'out', configs['suffixes']['output_abort'])
+            
 
 def search_loop():
+    print('\n-------------\n\n')
     ac_dirs = get_acquisition_dirs()
 
     if len(ac_dirs) == 0:
@@ -381,37 +419,52 @@ def search_loop():
         current_dir = ac_dirs[0]
         count_tiles(current_dir)
         
+        show_output(ac_dirs, current_dir)
+
         finished = True
         for tile in current_dir['tiles']:
-            if tile['output_images'] != current_dir['target_per_tile']:
+            if tile['output_images'] < tile['expected']:
                 finished = False
         if finished:
             print('\nAll tiles have been destriped.  Checking for Maximum Intensity Projections...')
             check_mips(current_dir)
             finish_directory(current_dir)
-
-
-        show_output(ac_dirs, current_dir)
+            search_loop()
 
         destripe_tile = False
         waiting_tile = False
 
         for tile in current_dir['tiles']:
-            if tile['input_images'] == current_dir['target_per_tile'] and tile['output_images'] != current_dir['target_per_tile']:
+            if tile['input_images'] >= tile['expected'] and tile['output_images'] < tile['expected']:
                 destripe_tile = tile['path']
                 break
-            elif tile['input_images'] > 0 and tile['output_images'] == 0:
-                waiting_tile = tile['path']
-                break 
+
+        if not destripe_tile:
+            for tile in current_dir['tiles']:
+                if tile['input_images'] > 0 and tile['output_images'] == 0:
+                    waiting_tile = tile
+                    break 
         
         if destripe_tile:
             input_path = os.path.join(current_dir['path'], destripe_tile)
             output_path = os.path.join(current_dir['output_path'], destripe_tile)
             print('\nDestriping {}...\n'.format(destripe_tile))
-            run_pystripe(input_path, output_path)
+            run_pystripe(input_path, output_path, current_dir)
 
         elif waiting_tile:
-            print('\nWaiting for {} to finish being acquired...'.format(waiting_tile))
+            print('\nWaiting for current tile: {} to finish being acquired...'.format(waiting_tile['path']))
+            if stall_counter[0] == waiting_tile['path'] and stall_counter[1] == waiting_tile['input_images']:
+                stall_counter[2] += 1
+            else:
+                stall_counter[0] = waiting_tile['path']
+                stall_counter[1] = waiting_tile['input_images']
+                stall_counter[2] = 0
+
+            if stall_counter[2] > 2:
+                x = input('\nThis acquisition ({}) seems to be incomplete.  Mark as aborted (y/n)?\n'.format(current_dir['path']))
+                if x in 'yesYesyeahsure':
+                    abort(current_dir)
+                    search_loop()
             time.sleep(5)
 
         else:
@@ -420,17 +473,33 @@ def search_loop():
     search_loop()
             
 def main():
-    global configs, input_dir, output_dir, no_list
+    global configs, input_dir, output_dir, no_list, stall_counter
+
 
     config_path = Path(__file__).parent / 'data/config.ini'
     configs = get_configs(config_path)
+
     input_dir = Path(configs['paths']['input_dir'])
     output_dir = Path(configs['paths']['output_dir'])
+    try:
+        x = os.listdir(input_dir)
+    except:
+        print('Could not access input directory: {}.'.format(input_dir))
+        print('Make sure drive is accessible, or change drive location in config file: {}'.format(config_path))
+        x = input('Press Enter to continue...')
+        main()
+    try:
+        x = os.listdir(output_dir)
+    except:
+        print('Could not access output directory: {}.'.format(output_dir))
+        print('Make sure drive is accessible, or change drive location in config file: {}'.format(config_path))
+        x = input('Press Enter to continue...')
+        main()
+    stall_counter = ['', 0, 0]
     no_list = []
-
-    input_path = r'C:\SmartSPIM_Data\20240606_13_26_43_destripe_test_2'
-    output_path = r'C:\SmartSPIM_Data_output\20240606_13_26_43_destripe_test_2'
-
+    # input_path = r'C:\SmartSPIM_Data\20240606_13_26_43_destripe_test_2'
+    # output_path = r'C:\SmartSPIM_Data_output\20240606_13_26_43_destripe_test_2'
+    print('\nScanning {} for new acquisitions...\n'.format(input_dir))
     search_loop()
     
     # pprint(ac_dirs)
