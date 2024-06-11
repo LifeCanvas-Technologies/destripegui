@@ -38,6 +38,7 @@ def run_pystripe(input_path, output_path, current_dir):
     use_gpu = int(configs["params"]["use_gpu"])
     cpu_readers = int(configs["params"]["cpu_readers"])
     gpu_chunksize = int(configs["params"]["gpu_chunksize"])
+    ram_loadsize = int(configs["params"]["ram_loadsize"])
 
     contents = os.listdir(input_path)
     if len(contents) == 1:
@@ -47,13 +48,20 @@ def run_pystripe(input_path, output_path, current_dir):
 
     if torch.cuda.is_available() and use_gpu:
         print("Using GPU Destriper")
-        gpu_destripe(["-i", str(input_path),
+        cmd = ["-i", str(input_path),
                         "-o", str(output_path), 
                         "--sigma1", str(sigma[0]),
                         "--sigma2", str(sigma[1]),
-                        "--cpu-readers", str(cpu_readers), 
+                        "--cpu-readers", str(workers), 
                         "--gpu-chunksize", str(gpu_chunksize),
-                        "--extra-smoothing", "True"])
+                        "--extra-smoothing", "True"]
+        if ram_loadsize > 0:
+            cmd.append("--ram-loadsize")
+            cmd.append(str(ram_loadsize))
+        print(cmd)
+        
+        gpu_destripe(cmd)        
+
     else:
         print("Using CPU Destriper")
         cpu_destripe(["-i", str(input_path),

@@ -1,2 +1,3 @@
 call activate destripegui_gpu
 destripegui
+pause
