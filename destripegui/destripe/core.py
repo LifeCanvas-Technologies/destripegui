@@ -685,7 +685,7 @@ def _find_all_images(search_path, input_path, output_path, zstep=None):
     return img_paths
 
 
-def batch_filter(input_path, output_path, workers, chunks, sigma, auto_mode, level=0, wavelet='db3', crossover=10,
+def batch_filter(input_path, output_path, workers, chunks, sigma, level=0, wavelet='db3', crossover=10,
                  threshold=-1, compression=1, flat=None, dark=0, zstep=None, rotate=False,
                  lightsheet=False,
                  artifact_length=150,
@@ -742,7 +742,7 @@ def batch_filter(input_path, output_path, workers, chunks, sigma, auto_mode, lev
         workers = multiprocessing.cpu_count()
     print('Looking for images in {}...'.format(input_path))
     img_paths = _find_all_images(input_path, input_path, output_path, zstep)
-    print('Found {} compatible images'.format(len(img_paths)))
+    print('Fo00und {} compatible images'.format(len(img_paths)))
     # if auto_mode:
         # count_path = os.path.join(input_path, 'image_count.txt')
         # print('count_path: {} count: {}'.format(count_path, len(img_paths)))
@@ -750,13 +750,13 @@ def batch_filter(input_path, output_path, workers, chunks, sigma, auto_mode, lev
             # fp.write(str(len(img_paths)))
             # fp.close
             
-    if auto_mode:
-        img_path_strs = list(str(path) for path in img_paths)
-        list_path = os.path.join(output_path, 'destriped_image_list.txt')
-        # print('writing image_list.  {} images'.format(len(img_path_strs)))
-        with open(list_path, 'w') as fp:
-            fp.write('\n'.join(img_path_strs) + '\n')
-            fp.close
+    # if auto_mode:
+    #     img_path_strs = list(str(path) for path in img_paths)
+    #     # list_path = os.path.join(output_path, 'destriped_image_list.txt')
+    #     # print('writing image_list.  {} images'.format(len(img_path_strs)))
+    #     with open(list_path, 'w') as fp:
+    #         fp.write('\n'.join(img_path_strs) + '\n')
+    #         fp.close
         # print('writing image list: {}'.format(list_path))
             
     # copy text and ini files
@@ -802,14 +802,7 @@ def batch_filter(input_path, output_path, workers, chunks, sigma, auto_mode, lev
         args.append(arg_dict)
     print('Pystripe batch processing progress:')
     with multiprocessing.Pool(workers) as pool:
-        if auto_mode:
-            list(tqdm.tqdm(
-                pool.imap(_read_filter_save, args, chunksize=chunks), 
-                total=len(args), 
-                ascii=True,
-                bar_format='{l_bar}{bar:60}{r_bar}{bar:-10b}'))
-        else:
-            list(tqdm.tqdm(pool.imap(_read_filter_save, args, chunksize=chunks), total=len(args), ascii=True))
+        list(tqdm.tqdm(pool.imap(_read_filter_save, args, chunksize=chunks), total=len(args), ascii=True))
     
     print('Done!')
 
@@ -862,7 +855,7 @@ def _parse_args(raw_args=None):
     parser.add_argument("--dont-convert-16bit", help="Is the output converted to 16-bit .tiff or not", action="store_true")
     parser.add_argument("--output_format", "-of", help="Desired format output for the images", type=str, required=False, default=None)
     parser.add_argument('--log-path',type=str,required=False, default=None, help="path to the logs for postprocessing")
-    parser.add_argument("--auto-mode", "-a", help="If true, use live destriping mode (i.e. keep track of which images have been destriped)", action="store_true")
+    # parser.add_argument("--auto-mode", "-a", help="If true, use live destriping mode (i.e. keep track of which images have been destriped)", action="store_true")
     args = parser.parse_args(raw_args)
     return args
 
@@ -968,7 +961,7 @@ def main(raw_args=None):
                      workers=args.workers,
                      chunks=args.chunks,
                      sigma=sigma,
-                     auto_mode=args.auto_mode,
+                    #  auto_mode=args.auto_mode,
                      level=args.level,
                      wavelet=args.wavelet,
                      crossover=args.crossover,
@@ -987,7 +980,7 @@ def main(raw_args=None):
                      output_format=args.output_format
                      )
     else:
-        print('Cannot find input file or directory. Exiting...')
+        print('Cannot find input fi00le or directory. Exiting...')
 
 
 if __name__ == "__main__":

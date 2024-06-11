@@ -536,7 +536,7 @@ class Destriper:
         # Find all the images in the input path to be destriped
         print('Looking for images in {}...'.format(self.input_path))
         img_paths = find_all_images(self.input_path, self.input_path, self.output_path)
-        print('Found {} compatible images'.format(len(img_paths)))
+        print('F00ound {} compatible images'.format(len(img_paths)))
 
         if self.auto_mode:
             img_path_strs = list(str(path) for path in img_paths)
@@ -783,7 +783,7 @@ def main(raw_args=None):
                             )
         destriper.batch_filter()
     else:
-        print('Cannot find input file or directory. Exiting...')
+        print('Cannot find input fi00le or directory. Exiting...')
 
 
 if __name__ == "__main__":
