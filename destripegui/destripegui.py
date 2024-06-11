@@ -3,9 +3,6 @@ import math
 import multiprocessing
 import configparser
 from pathlib import Path
-from tkinter import *
-from tkinter import ttk
-from tkinter import messagebox
 from datetime import datetime
 import traceback
 import shutil
@@ -186,19 +183,11 @@ def get_acquisition_dirs():
     ac_dirs = search_directory(search_dir, list(), depth=3)
             
     for dir in ac_dirs:
-        # try:
-        #     get_metadata(dir)
-        # except:
-        #     log("An error occurred attempting to read metadata for {}:".format(dir['path']), True)
-        #     log(traceback.format_exc(), True)
-        #     log("Adding {} to the No List".format(dir['path']), True)
-        #     no_list.append(dir['path'])
         get_metadata(dir)
             
     unfinished_dirs = []    
     for dir in ac_dirs:
         destripe_string = dir['metadata']['Destripe']
-        #print('destripe_string: {}'.format(destripe_string))
         try:
             tag = ''
             for s in ['N', 'C', 'D', 'A']:
@@ -207,27 +196,19 @@ def get_acquisition_dirs():
                     break
             if tag == 'N':
                 no_list.append(dir['path'])
-                # log("Adding {} to No List because N(/A) flag set in metadata".format(dir['path']), True)
                 continue
             elif tag == 'C':
                 no_list.append(dir['path'])
-                # log("Adding {} to No List because C flag set in metadata".format(dir['path']), True)
                 continue
             elif tag == 'D':
                 no_list.append(dir['path'])
-                # log("Adding {} to No List because D flag set in metadata".format(dir['path']), True)
                 continue
             elif tag == 'A':
                 no_list.append(dir['path'])
-                # suffix_length = len(input_abort)
-                # if str(dir['path'])[-suffix_length:] != input_abort: abort(dir)
-                # log("Adding {} to No List because A flag set in metadata".format(dir['path']), True)
                 continue
             else: 
                 unfinished_dirs.append(dir)
-                # log("Adding {} to final Acquisition Queue".format(dir['path']), False)
         except:
-            # log('Error encountered while checking metadata tags for {}:'.format(dir['path']), True)
             print('Error encountered while checking metadata tags for {}:'.format(dir['path']))
             pass
     
@@ -257,7 +238,6 @@ def count_tiles(dir):
             'output_images': output_images,
             'expected': expected
         })
-    # tiles.sort(key=lambda x: x['path'])
     dir['tiles'] = tiles
 
 def show_output(ac_dirs, current_dir):
@@ -328,9 +308,6 @@ def finish_directory(dir):
     # log(' finishing {}'.format(dir['path']), True)
 
 def append_folder_name(dir, drive, msg, attempts = 0):
-    # Update folder name after abort or pystripe finish
-    # MAX_ATTEMPTS = 100
-
     if drive == 'in':
         path = dir['path'] 
     else:
@@ -351,25 +328,6 @@ def append_folder_name(dir, drive, msg, attempts = 0):
 
         os.rename(path, new_path)
 
-    # try:
-    #     os.rename(path, new_path)
-    #     log("    Adding '{}' to directory name : {}".format(msg, path), True)
-    #     return True
-    # except:
-    #     log("    An error occurred while renaming {}:".format(path), True)
-    #     log(traceback.format_exc(), True)
-    #     subprocess.run(["ren", path, new_path])
-    #     # attempts += 1
-    #     # if attempts < MAX_ATTEMPTS:
-    #     #     log("   %d attempts made to rename %s, retrying..."%(attempts, path), True)
-    #     #     append_folder_name(dir, drive, msg, attempts)
-    #     # else:
-    #     #     log("    An error occurred while renaming {}:".format(path), True)
-    #     #     log(traceback.format_exc(), True)
-    #     #     log("Unable to rename %s after %d attempts"%(path, attempts), True)
-        
-        # return False
-
 def prepend_tag(dir, drive, msg):
     # prepend tag to metadata file
     
@@ -382,9 +340,6 @@ def prepend_tag(dir, drive, msg):
         line_list = list(reader)
     destripe_position = line_list[0].index('Destripe')
     destripe = line_list[1][destripe_position]
-    # log("    Adding '{}' to Destripe metadata tag in {}".format(msg, metadata_path), True)
-    # if (msg in destripe): log('    "{}" already in output metadata'.format(msg))
-    # else:
     if msg not in destripe:
         line_list[1][destripe_position] = msg + destripe
         os.remove(metadata_path)
@@ -497,14 +452,9 @@ def main():
         main()
     stall_counter = ['', 0, 0]
     no_list = []
-    # input_path = r'C:\SmartSPIM_Data\20240606_13_26_43_destripe_test_2'
-    # output_path = r'C:\SmartSPIM_Data_output\20240606_13_26_43_destripe_test_2'
     print('\nScanning {} for new acquisitions...\n'.format(input_dir))
     search_loop()
     
-    # pprint(ac_dirs)
-    # run_pystripe(input_path, output_path)
-
 
 if __name__ == "__main__":
     main()
