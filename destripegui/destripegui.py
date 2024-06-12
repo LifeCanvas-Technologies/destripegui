@@ -161,7 +161,14 @@ def search_directory(search_dir, ac_list, depth):
     #     messagebox.showwarning(title='Drive Access Error', message='Error: {}\nInput and output drives can be set by editing:\n{}'.format(e, config_path))
     #     return
 
-    contents = os.listdir(search_dir)
+    try:
+        contents = os.listdir(search_dir)
+    except:
+        print('Could not access input directory: {}.'.format(input_dir))
+        print('Make sure drive is accessible, and not open in another program.')
+        x = input('Press Enter to retry...')
+        search_loop()
+
     if 'metadata.txt' in contents:
         ac_list.append({
             'path': search_dir, 
@@ -191,10 +198,16 @@ def get_acquisition_dirs():
     ac_dirs = search_directory(search_dir, list(), depth=3)
             
     for dir in ac_dirs:
-        get_metadata(dir)
+        try:
+            get_metadata(dir)
+        except:
+            print('Could not parse metadata.txt for {}\n'.format(dir['path']))
+            ac_dirs.remove(dir)
+            no_list.append(dir['path'])
             
     unfinished_dirs = []    
     for dir in ac_dirs:
+        # print(dir)
         destripe_string = dir['metadata']['Destripe']
         try:
             tag = ''
@@ -310,6 +323,7 @@ def finish_directory(dir):
 
     prepend_tag(dir, 'in', 'D')
     prepend_tag(dir, 'out', 'D')
+    # x = input('about to rename...')
     append_folder_name(dir, 'in', configs['suffixes']['input_done'])
     append_folder_name(dir, 'out', configs['suffixes']['output_done'])
 
@@ -322,19 +336,16 @@ def append_folder_name(dir, drive, msg, attempts = 0):
         path = dir['output_path']
 
     try:
-        os.listdir(path)
-    except:
-        print('Cannot access {} to rename folder')
+        split = os.path.split(path)
+        if msg not in split[1]:
+            new_dir_name = split[1] + msg
+            new_path = os.path.join(split[0], new_dir_name)
+            os.rename(path, new_path)
+    except Exception as error:
+        print(error)
+        print('Cannot access {} to rename folder'.format(path))
         x = input('Make sure it is accessible and not open in another program, then press Enter to retry...\n')
         append_folder_name(dir, drive, msg)
-
-    split = os.path.split(path)
-    if msg not in split[1]:
-        new_dir_name = split[1] + msg
-        new_path = os.path.join(split[0], new_dir_name)
-        
-
-        os.rename(path, new_path)
 
 def prepend_tag(dir, drive, msg):
     # prepend tag to metadata file
@@ -342,19 +353,27 @@ def prepend_tag(dir, drive, msg):
     if drive == 'in':
         metadata_path = os.path.join(dir['path'], 'metadata.txt')
     else:
-        metadata_path = os.path.join(dir['output_path'], 'metadata.txt')     
-    with open(metadata_path, errors="ignore") as f:
-        reader = csv.reader(f, dialect='excel', delimiter='\t')
-        line_list = list(reader)
-    destripe_position = line_list[0].index('Destripe')
-    destripe = line_list[1][destripe_position]
-    if msg not in destripe:
+        metadata_path = os.path.join(dir['output_path'], 'metadata.txt')
+    try:
+        with open(metadata_path, errors="ignore") as f:
+            reader = csv.reader(f, dialect='excel', delimiter='\t')
+            line_list = list(reader)
+            
+        destripe_position = line_list[0].index('Destripe')
+        destripe = line_list[1][destripe_position]
+        for char in 'ACDNacdn':
+            destripe = destripe.replace(char, '')
+
         line_list[1][destripe_position] = msg + destripe
-        os.remove(metadata_path)
+        # os.remove(metadata_path)
         with open(metadata_path, 'w', newline='') as f:
             writer = csv.writer(f, dialect='excel', delimiter='\t')
             for row in line_list:
                 writer.writerow(row)
+    except:
+        print('Cannot access {} to change destripe tag'.format(metadata_path))
+        x = input('Make sure it is accessible and not open in another program, then press Enter to retry...\n')
+        prepend_tag(dir, drive, msg)
 
 def abort(dir):
     # Perform tasks needed to respond to aborted acquisition
@@ -438,49 +457,49 @@ def search_loop():
 def main():
     print('''
                                                                         
-                                   ......              .....                        
-                               ...-=++++=-..       ..:-=+++=-:..                    
-                              ..=+=:...=+=-.        .-++-. .-=+-..                  
-                             .:+=.. ..==-..          ..=+-.  .-==.                  
-                            .:+=. ..-=-..              .:==:. .-==..                
-                        ..:-=+++===+=:.                  .-=====+++=:..             
-                     ..:-==-:::-=++=:                     .-++=--::--==-..          
-                    ..=+-.      ..-==.                   .:==:.      .:==-..        
-                   .:+=.    ..-:. .:=-.                  .=-.  .-:..    :==..       
-                  ..+=.   ..-++=:  .:=:                 .-=.  .-++=:..   :=-.       
-                  .-+.  ..:+=--+=.  .--.                :=:.  :==:=+=..   -+..      
-                  .==.  .:=:..:+=.  ...                  ..   :==...-=..  :+:.      
-                  .==  .:=.  .-=:.                            .=+:. .:=.. :+:.      
-                  .-+:.-+=::-==:.    ..:-.           .:-:.     .-==-:-+=..=+:.      
-                 ..=++=++++=-:.  .:-==++=:           .-+++=--.. ..:-=+++=+++:.      
-                .-=++==-:..    .:==-:::==:           .-+-::-=+-..   ..:--=+++=:..   
-              .-+==:..        .-+-.  .:=-.            :=-.   :==:.        .:-=+=:.  
-             .==:.           .:+=. ..:=-.             .:=-..  :==..           .-+-..
-            .+=.  ...:-====---++=--=+=-...           ....-++=--=+=---====:...   :+-.
-            =+:   .:+++=------====-:...--.           .:=:...-====-------=++=..  .=+:
-            ++:  .:+=..              .:=:             .-=.              ..-+=.   =+-
-            =+-  .-+:            ... .-=:             .-+:.....           .=+.. .=+:
-            .=+. .:+-.    ..:-==++++++++-.            :=+++++++==-:..     .==...-+-.
-             .-+-..=+=-::-=+=-:......:-+=:.          .-+=-:.. ..:-=+=-:::-=+-.:==:. 
-               :=++++++++=-:.         .:==:.        .-=-.          .:-=+++++++=-..  
-                ..::--::.    ..-..      .==:.      .-=-.     ..::.     .:---:..     
-             .--....          .:+=:..   .:+=.     .:=-.   ...-+-.           ...:-.. 
-              -+++++-.          .=++=:.  .-+-.    :=+:.  .-=++:.         .:=+++++.. 
-              .+=...-=+=.     .:=+++++=-..-+-.    :=+:.:=+++++=-..    .-=+=:..:+-.  
-               :+:  ..:=+:..:=+++=::..:-===+-.    :=+===:...:-=++=-:..=+-..  .==..  
-               .-=:. ..:++++=-:..      ..-++-.    :=+=:.       ..:-==++=..  .-=:.   
-                .:-===++=-:.     ...    .:=+-.    :=+-.    ...     ..:=++====-..    
-                   .....       ..-+-.    .-+-.    :=+:.    :==:..       ....        
-                 ....         .:+=+=:    .-+-.    :==:    .-+=+=..         ....     
-                 .-++-:...    .==::==.   .-+-.    :==:   .:=-.-+-.    ...-=++..     
-                 .-+-=+++=.   :+=:.-=:   .-+-.    :==:   .-+:.-+-.   -+++=-=+..     
-                 .:+: ...-+-  .-=::+=:   .-+-.    :=+:   .-+=.=+:. .==:....==..     
-                 ..=+:   .-=: ..=++=:.  .-++-.    .=+=:.  .-+++:. .=+:.  .=+:.      
-                  ..:===--=+=  ..:-=+===+++-.     .:=++===++=:..  :=+=--=+=..       
-                    ..::-=++=.     ...::-+=:       .-+=-::...    .-++=--:..         
-                         ..:==:..    ..-==:.        .-==:..   ..:-=-..              
-                            ..:=+=---=+=:.           ..-=+=--===-:.                 
-                               ..-==-:.                  .:===:.                    
+                                               ......              .....                        
+                                           ...-=++++=-..       ..:-=+++=-:..                    
+                                          ..=+=:...=+=-.        .-++-. .-=+-..                  
+                                         .:+=.. ..==-..          ..=+-.  .-==.                  
+                                        .:+=. ..-=-..              .:==:. .-==..                
+                                    ..:-=+++===+=:.                  .-=====+++=:..             
+                                 ..:-==-:::-=++=:                     .-++=--::--==-..          
+                                ..=+-.      ..-==.                   .:==:.      .:==-..        
+                               .:+=.    ..-:. .:=-.                  .=-.  .-:..    :==..       
+                              ..+=.   ..-++=:  .:=:                 .-=.  .-++=:..   :=-.       
+                              .-+.  ..:+=--+=.  .--.                :=:.  :==:=+=..   -+..      
+                              .==.  .:=:..:+=.  ...                  ..   :==...-=..  :+:.      
+                              .==  .:=.  .-=:.                            .=+:. .:=.. :+:.      
+                              .-+:.-+=::-==:.    ..:-.           .:-:.     .-==-:-+=..=+:.      
+                             ..=++=++++=-:.  .:-==++=:           .-+++=--.. ..:-=+++=+++:.      
+                            .-=++==-:..    .:==-:::==:           .-+-::-=+-..   ..:--=+++=:..   
+                          .-+==:..        .-+-.  .:=-.            :=-.   :==:.        .:-=+=:.  
+                         .==:.           .:+=. ..:=-.             .:=-..  :==..           .-+-..
+                        .+=.  ...:-====---++=--=+=-...           ....-++=--=+=---====:...   :+-.
+                        =+:   .:+++=------====-:...--.           .:=:...-====-------=++=..  .=+:
+                        ++:  .:+=..              .:=:             .-=.              ..-+=.   =+-
+                        =+-  .-+:            ... .-=:             .-+:.....           .=+.. .=+:
+                        .=+. .:+-.    ..:-==++++++++-.            :=+++++++==-:..     .==...-+-.
+                         .-+-..=+=-::-=+=-:......:-+=:.          .-+=-:.. ..:-=+=-:::-=+-.:==:. 
+                           :=++++++++=-:.         .:==:.        .-=-.          .:-=+++++++=-..  
+                            ..::--::.    ..-..      .==:.      .-=-.     ..::.     .:---:..     
+                         .--....          .:+=:..   .:+=.     .:=-.   ...-+-.           ...:-.. 
+                          -+++++-.          .=++=:.  .-+-.    :=+:.  .-=++:.         .:=+++++.. 
+                          .+=...-=+=.     .:=+++++=-..-+-.    :=+:.:=+++++=-..    .-=+=:..:+-.  
+                           :+:  ..:=+:..:=+++=::..:-===+-.    :=+===:...:-=++=-:..=+-..  .==..  
+                           .-=:. ..:++++=-:..      ..-++-.    :=+=:.       ..:-==++=..  .-=:.   
+                            .:-===++=-:.     ...    .:=+-.    :=+-.    ...     ..:=++====-..    
+                               .....       ..-+-.    .-+-.    :=+:.    :==:..       ....        
+                             ....         .:+=+=:    .-+-.    :==:    .-+=+=..         ....     
+                             .-++-:...    .==::==.   .-+-.    :==:   .:=-.-+-.    ...-=++..     
+                             .-+-=+++=.   :+=:.-=:   .-+-.    :==:   .-+:.-+-.   -+++=-=+..     
+                             .:+: ...-+-  .-=::+=:   .-+-.    :=+:   .-+=.=+:. .==:....==..     
+                             ..=+:   .-=: ..=++=:.  .-++-.    .=+=:.  .-+++:. .=+:.  .=+:.      
+                              ..:===--=+=  ..:-=+===+++-.     .:=++===++=:..  :=+=--=+=..       
+                                ..::-=++=.     ...::-+=:       .-+=-::...    .-++=--:..         
+                                     ..:==:..    ..-==:.        .-==:..   ..:-=-..              
+                                        ..:=+=---=+=:.           ..-=+=--===-:.                 
+                                           ..-==-:.                  .:===:.                    
                                                                   
     ''')
     

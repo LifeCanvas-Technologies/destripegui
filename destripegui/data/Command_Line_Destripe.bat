@@ -6,5 +6,7 @@ if %version:~5,2%==19 mode con: cols=120 lines=60
 @echo Loading Destriper...
 @echo off
 
+
 call activate command_line_destripe
 command_line_destripe
+pause
