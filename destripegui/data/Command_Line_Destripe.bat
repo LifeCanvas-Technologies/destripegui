@@ -1,3 +1,3 @@
 call activate command_line_destripe
-destripegui
+command_line_destripe
 pause
