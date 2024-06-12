@@ -325,7 +325,7 @@ def append_folder_name(dir, drive, msg, attempts = 0):
         os.listdir(path)
     except:
         print('Cannot access {} to rename folder')
-        x = input('Make sure it is accessible and not open in another program, then press Enter...\n')
+        x = input('Make sure it is accessible and not open in another program, then press Enter to retry...\n')
         append_folder_name(dir, drive, msg)
 
     split = os.path.split(path)
@@ -449,14 +449,14 @@ def main():
     except:
         print('Could not access input directory: {}.'.format(input_dir))
         print('Make sure drive is accessible, or change drive location in config file: {}'.format(config_path))
-        x = input('Press Enter to continue...')
+        x = input('Press Enter to retry...')
         main()
     try:
         x = os.listdir(output_dir)
     except:
         print('Could not access output directory: {}.'.format(output_dir))
         print('Make sure drive is accessible, or change drive location in config file: {}'.format(config_path))
-        x = input('Press Enter to continue...')
+        x = input('Press Enter to retry...')
         main()
     stall_counter = ['', 0, 0]
     no_list = []
