@@ -14,7 +14,7 @@ call pip install -e .
 set SCRIPT="%TEMP%\%RANDOM%-%RANDOM%-%RANDOM%-%RANDOM%.vbs"
 
 echo Set WshShell = CreateObject("Wscript.shell") >> %SCRIPT%
-echo Set oLink = WshShell.CreateShortcut("%USERPROFILE%\Desktop\Command_Line_Destripe.lnk") >> %SCRIPT%
+echo Set oLink = WshShell.CreateShortcut("%USERPROFILE%\Desktop\Destripe_CL.lnk") >> %SCRIPT%
 echo oLink.TargetPath = "%~dp0destripegui\data\Command_Line_Destripe.bat" >> %SCRIPT%
 echo oLink.IconLocation = "%~dp0destripegui\data\lct.ico" >> %SCRIPT%
 echo oLink.Save >> %SCRIPT%

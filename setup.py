@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = "2.0.0"
+VERSION = "1.0.0"
 
 with open('README.md') as file:
     long_description = file.read()
@@ -13,9 +13,9 @@ CLASSIFIERS = [
 ]
 
 # calling the setup function 
-setuptools.setup(name='destripegui_gpu',
+setuptools.setup(name='command_line_destripe',
       version=VERSION,
-      description='A GUI for automatic pystripe destriping',
+      description='A command line auto-destriping tool',
       long_description=long_description,
       long_description_content_type='text/markdown',
       url='https://github.com/lifecanvastechnologies',
