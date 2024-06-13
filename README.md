@@ -24,3 +24,4 @@ Instructions for installing Command Line Live Destriping:
 3. GPU destriping options
    * ```gpu-destripe --input <Input Directory> --output <Output Directory> --sigma1 <SIGMA1> --sigma2 <SIGMA2> --extra-smoothing True --gpu-chunksize 64```
    * Leave the ```extra-smoothing``` option to be True, and use 64 for gpu-chunksize unless the GPU is not a 4090 (which has 24GB vRAM. You may have to make it less for GPUs with less than that, and you can increase it for GPUs with larger vRAM)
+4. Safe Mode - To run the command line destriper in safe mode, activate the environment with ```conda activate command_line_destripe```, then run ```command_line_destripe -s```.  This will display any acquisitions that the destriper interprets as ready to destripe, without taking any action.  If you do not wish any of these acquisitions to be destriped, change the destripe tag in that acquisition's metadata tag accordingly before running the destriper in standard mode.

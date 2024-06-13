@@ -402,6 +402,9 @@ def search_loop():
         count_tiles(current_dir)
         
         show_output(ac_dirs, current_dir)
+        if safe_mode:
+            x = input('Press Enter to exit program...')
+            exit()
 
         finished = True
         for tile in current_dir['tiles']:
@@ -502,11 +505,19 @@ def main():
                                            ..-==-:.                  .:===:.                    
                                                                   
     ''')
+
+    global configs, input_dir, output_dir, no_list, stall_counter, safe_mode
     
+    safe_mode = False
+    try:
+        if sys.argv[1] == '-s':
+            safe_mode = True
+    except:
+        pass
+
+    if safe_mode:
+        print('\nRunning in Safe Mode.  No changes will be made to any files.\n')
     
-    
-    
-    global configs, input_dir, output_dir, no_list, stall_counter
     print('Reading config file...\n')
 
     config_path = Path(__file__).parent / 'data/config.ini'
