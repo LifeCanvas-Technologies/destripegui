@@ -4,11 +4,11 @@ Live Command Line Destriping with GPU-accelerated destriping
 
 **Installation instructions**
 Instructions for installing Command Line Live Destriping:
-0. Ensure Anaconda is installed on the computer.
-1. Go to Go to https://github.com/LifeCanvas-Technologies/destripegui/tree/command-line-destripe and click the green "<> Code" button. 
-2. Download it by clicking "Download Zip"
-3. Extract the folder somewhere
-4. Navigate to the folder (named "destripegui") in File Explorer, and then double click "install.bat". This will do all the necessary installations
+1. Ensure Anaconda is installed on the computer.
+2. Go to Go to https://github.com/LifeCanvas-Technologies/destripegui/tree/command-line-destripe and click the green "<> Code" button. 
+3. Download it by clicking "Download Zip"
+4. Extract the folder somewhere
+5. Navigate to the folder (named "destripegui") in File Explorer, and then double click "install.bat". This will do all the necessary installations
    * This should have created a Desktop shortcut called "Destripe_CL", which is a clickable shortcut that will run the Destriper.
 
 **Post-installation setup**
