@@ -458,6 +458,14 @@ def search_loop():
     search_loop()
             
 def main():
+    double_test = CreateMutex(None, 1, 'A unique mutex name')
+    if GetLastError(  ) == ERROR_ALREADY_EXISTS:
+        # Take appropriate action, as this is the second
+        # instance of this script; for example:
+        print('Another instance of destripegui is already running')
+        exit(1)
+
+
     print('''
                                                                         
                                                ......              .....                        
