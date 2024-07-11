@@ -264,7 +264,11 @@ def count_tiles(dir):
 def show_output(ac_dirs, current_dir):
     headers = ['Tile', 'Images Expected', 'Images on Acquisition Drive', 'Images on Stitch Drive']
     data = []
+    total_images = 0
+    total_destriped = 0
     for tile in current_dir['tiles']:
+        total_images += tile['expected']
+        total_destriped += tile['output_images']
         data.append([
             tile['path'],
             tile['expected'],
@@ -273,6 +277,10 @@ def show_output(ac_dirs, current_dir):
         ])
     print('Current Acquisition: {}\n'.format(current_dir['path']))
     print(tabulate(data, headers))
+    pct = total_destriped / total_images
+    bar_length = 72
+    print('\nOVERALL DESTRIPING PROGRESS: {:.0%} [{}{}]'.format(pct, '#'*round(pct*bar_length), '-'*round((1-pct)*bar_length)))
+
     if len(ac_dirs) > 1:
         print('\nAdditional Acquisitions in Destriping Queue:')
         for i in range(1, len(ac_dirs)):
