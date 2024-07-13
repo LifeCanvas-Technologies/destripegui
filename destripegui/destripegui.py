@@ -398,80 +398,80 @@ def abort(dir):
             
 
 def search_loop():
-    print('\n-------------\n\n')
-    ac_dirs = get_acquisition_dirs()
+    while True:
+        print('\n-------------\n\n')
+        ac_dirs = get_acquisition_dirs()
 
-    if len(ac_dirs) == 0:
-        print("Waiting for new acquisitions...")
-        time.sleep(5)
-        search_loop()
-    if len(ac_dirs) > 0:
-        current_dir = ac_dirs[0]
-        count_tiles(current_dir)
-        
-        show_output(ac_dirs, current_dir)
-        if safe_mode:
-            x = input('Press Enter to exit program...')
-            exit()
+        if len(ac_dirs) == 0:
+            print("Waiting for new acquisitions...")
+            time.sleep(5)
+            continue
+        if len(ac_dirs) > 0:
+            current_dir = ac_dirs[0]
+            count_tiles(current_dir)
+            
+            show_output(ac_dirs, current_dir)
+            if safe_mode:
+                x = input('Press Enter to exit program...')
+                exit()
 
-        finished = True
-        for tile in current_dir['tiles']:
-            if tile['output_images'] < tile['expected']:
-                finished = False
-        if finished:
-            print('\nAll tiles have been destriped.  Checking for Maximum Intensity Projections...')
-            check_mips(current_dir)
-            finish_directory(current_dir)
-            search_loop()
-
-        destripe_tile = False
-        waiting_tile = False
-
-        for tile in current_dir['tiles']:
-            if tile['input_images'] >= tile['expected'] and tile['output_images'] < tile['expected']:
-                destripe_tile = tile['path']
-                break
-
-        if not destripe_tile:
+            finished = True
             for tile in current_dir['tiles']:
-                if tile['input_images'] > 0 and tile['output_images'] == 0:
-                    waiting_tile = tile
-                    break 
-        
-        if destripe_tile:
-            input_path = os.path.join(current_dir['path'], destripe_tile)
-            output_path = os.path.join(current_dir['output_path'], destripe_tile)
-            print('\nDestriping {}...\n'.format(destripe_tile))
-            run_pystripe(input_path, output_path, current_dir)
+                if tile['output_images'] < tile['expected']:
+                    finished = False
+            if finished:
+                print('\nAll tiles have been destriped.  Checking for Maximum Intensity Projections...')
+                check_mips(current_dir)
+                finish_directory(current_dir)
+                continue
 
-        elif waiting_tile:
-            print('\nWaiting for current tile: {} to finish being acquired...'.format(waiting_tile['path']))
-            if stall_counter[0] == waiting_tile['path'] and stall_counter[1] == waiting_tile['input_images']:
-                stall_counter[2] += 1
+            destripe_tile = False
+            waiting_tile = False
+
+            for tile in current_dir['tiles']:
+                if tile['input_images'] >= tile['expected'] and tile['output_images'] < tile['expected']:
+                    destripe_tile = tile['path']
+                    break
+
+            if not destripe_tile:
+                for tile in current_dir['tiles']:
+                    if tile['input_images'] > 0 and tile['output_images'] == 0:
+                        waiting_tile = tile
+                        break 
+            
+            if destripe_tile:
+                input_path = os.path.join(current_dir['path'], destripe_tile)
+                output_path = os.path.join(current_dir['output_path'], destripe_tile)
+                print('\nDestriping {}...\n'.format(destripe_tile))
+                run_pystripe(input_path, output_path, current_dir)
+
+            elif waiting_tile:
+                print('\nWaiting for current tile: {} to finish being acquired...'.format(waiting_tile['path']))
+                if stall_counter[0] == waiting_tile['path'] and stall_counter[1] == waiting_tile['input_images']:
+                    stall_counter[2] += 1
+                else:
+                    stall_counter[0] = waiting_tile['path']
+                    stall_counter[1] = waiting_tile['input_images']
+                    stall_counter[2] = 0
+
+                if stall_counter[2] > 2:
+                    x = input('\nThis acquisition ({}) seems to be incomplete.  Mark as aborted (y/n)?\n'.format(current_dir['path']))
+                    if x in 'yesYesyeahsure':
+                        abort(current_dir)
+                        continue
+                time.sleep(5)
+
             else:
-                stall_counter[0] = waiting_tile['path']
-                stall_counter[1] = waiting_tile['input_images']
-                stall_counter[2] = 0
-
-            if stall_counter[2] > 2:
-                x = input('\nThis acquisition ({}) seems to be incomplete.  Mark as aborted (y/n)?\n'.format(current_dir['path']))
-                if x in 'yesYesyeahsure':
-                    abort(current_dir)
-                    search_loop()
-            time.sleep(5)
-
-        else:
-            time.sleep(5)
-
-    search_loop()
+                time.sleep(5)
             
 def main():
-    double_test = CreateMutex(None, 1, 'A unique mutex name')
-    if GetLastError(  ) == ERROR_ALREADY_EXISTS:
-        # Take appropriate action, as this is the second
-        # instance of this script; for example:
-        print('Another instance of destripegui is already running')
-        exit(1)
+    if 'configs' not in globals():
+        double_test = CreateMutex(None, 1, 'A unique mutex name')
+        if GetLastError(  ) == ERROR_ALREADY_EXISTS:
+            # Take appropriate action, as this is the second
+            # instance of this script; for example:
+            print('Another instance of destripegui is already running')
+            exit(1)
 
 
     print('''
