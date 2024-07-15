@@ -143,7 +143,10 @@ def get_target_number(dir):
     skips = sum(list(int(tile['Skip']) for tile in dir['metadata']['tiles']))
     z_block = float(dir['metadata']['Z_Block'])
     z_step = float(dir['metadata']['Z step (m)'])
-    steps_per_tile = max(math.ceil(z_block / z_step), 1)
+    try:
+        steps_per_tile = max(math.ceil(z_block / z_step), 1)
+    except:
+        steps_per_tile = 1
     target = int(skips * steps_per_tile)
 
     # log("Target number calculation for {}:".format(dir['path']), False)
