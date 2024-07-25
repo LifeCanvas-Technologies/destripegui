@@ -10,7 +10,7 @@ from win32event import CreateMutex
 from win32api import GetLastError
 from winerror import ERROR_ALREADY_EXISTS
 from sys import exit
-import torch
+#import torch
 import subprocess
 from pprint import pprint
 import math
@@ -18,7 +18,6 @@ from tabulate import tabulate
 
 from destripegui.destripe.core import main as cpu_destripe
 from destripegui.destripe.utils import find_all_images
-from destripegui.destripe.core_gpu import main as gpu_destripe
 from destripegui.destripe import supported_extensions
 
 def get_configs(config_path):
@@ -46,8 +45,9 @@ def run_pystripe(input_path, output_path, current_dir):
         # output_path = os.path.join(output_path, contents[0])
         use_gpu = 0
 
-    if torch.cuda.is_available() and use_gpu:
+    if use_gpu:
         print("Using GPU Destriper")
+        from destripegui.destripe.core_gpu import main as gpu_destripe
         cmd = ["-i", str(input_path),
                         "-o", str(output_path), 
                         "--sigma1", str(sigma[0]),
