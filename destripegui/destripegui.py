@@ -45,6 +45,9 @@ def run_pystripe(input_path, output_path, current_dir):
         # output_path = os.path.join(output_path, contents[0])
         use_gpu = 0
 
+    if 'MIP' in input_path:
+        use_gpu = 0
+
     if use_gpu:
         print("Using GPU Destriper")
         from destripegui.destripe.core_gpu import main as gpu_destripe
