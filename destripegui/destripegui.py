@@ -460,7 +460,7 @@ def search_loop():
                     stall_counter[1] = waiting_tile['input_images']
                     stall_counter[2] = 0
 
-                if stall_counter[2] > 2:
+                if stall_counter[2] > 60:
                     x = input('\nThis acquisition ({}) seems to be incomplete.  Mark as aborted (y/n)?\n'.format(current_dir['path']))
                     if x in 'yesYesyeahsure':
                         abort(current_dir)
