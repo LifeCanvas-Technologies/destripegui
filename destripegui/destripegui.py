@@ -147,7 +147,7 @@ def get_target_number(dir):
     z_block = float(dir['metadata']['Z_Block'])
     z_step = float(dir['metadata']['Z step (m)'])
     try:
-        steps_per_tile = max(math.ceil(z_block / z_step), 1)
+        steps_per_tile = max(math.ceil(z_block / z_step) + 1, 1)
     except:
         steps_per_tile = 1
     target = int(skips * steps_per_tile)
