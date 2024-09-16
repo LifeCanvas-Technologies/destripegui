@@ -449,6 +449,7 @@ def search_loop():
                 input_path = os.path.join(current_dir['path'], destripe_tile)
                 output_path = os.path.join(current_dir['output_path'], destripe_tile)
                 print('\nDestriping {}...\n'.format(destripe_tile))
+                time.sleep(2)
                 run_pystripe(input_path, output_path, current_dir)
 
             elif waiting_tile:
