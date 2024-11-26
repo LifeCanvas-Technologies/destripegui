@@ -39,6 +39,14 @@ def run_pystripe(input_path, output_path, current_dir):
     gpu_chunksize = int(configs["params"]["gpu_chunksize"])
     ram_loadsize = int(configs["params"]["ram_loadsize"])
 
+    shift_x = 0
+    shift_y = 0
+    scale = 1
+    crop_x = 0
+    crop_y = 0
+    rotate = 0
+    manipulate = False    
+
     contents = os.listdir(input_path)
     if len(contents) == 1:
         # input_path = os.path.join(input_path, contents[0])
@@ -57,7 +65,15 @@ def run_pystripe(input_path, output_path, current_dir):
                         "--sigma2", str(sigma[1]),
                         "--cpu-readers", str(workers), 
                         "--gpu-chunksize", str(gpu_chunksize),
-                        "--extra-smoothing", "True"]
+                        "--extra-smoothing", "True",
+                        '--shift_x', str(shift_x),
+                        '--shift_y', str(shift_y),
+                        '--scale', str(scale),
+                        '--crop_x', str(crop_x),
+                        '--crop_y', str(crop_y),
+                        '--rotate_deg', str(rotate),
+                        '--manipulate', str(manipulate)
+                        ]
         if ram_loadsize > 0:
             cmd.append("--ram-loadsize")
             cmd.append(str(ram_loadsize))
@@ -72,7 +88,15 @@ def run_pystripe(input_path, output_path, current_dir):
                         "--sigma1", str(sigma[0]),
                         "--sigma2", str(sigma[1]),
                         "--workers", str(workers),
-                        "--chunks", str(chunks)])
+                        "--chunks", str(chunks),
+                        '--shift_x', str(shift_x),
+                        '--shift_y', str(shift_y),
+                        '--scale', str(scale),
+                        '--crop_x', str(crop_x),
+                        '--crop_y', str(crop_y),
+                        '--rotate_deg', str(rotate),
+                        '--manipulate', str(manipulate)
+                        ])
         
 def pair_key_value_lists(keys, values):
     # utility function for building metadata dict

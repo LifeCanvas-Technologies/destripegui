@@ -21,6 +21,44 @@ supported_extensions = ['.tif', '.tiff', '.raw', '.dcimg', '.png']
 supported_output_extensions = ['.tif', '.tiff', '.png']
 nb_retry = 10
 
+def manipulate_image(img, scale, rotate_deg, shift_x, shift_y, crop_x, crop_y):
+    # d1 = 2
+    # d2 = 4
+
+    # print('input:')
+    # print('shape: {}'.format(np.shape(img)))
+    # print('d1,d1: {}, d2,d1: {}, d1,d2: {}, d2,d2: {}'.format(img[d1,d1], img[d2,d1], img[d1,d2],img[d2,d2]))
+
+    # print(np.shape(img))
+    if scale != 1:
+        img = ndimage.zoom(img, scale)
+        # print('scaled:')
+        # print('shape: {}'.format(np.shape(img)))
+        # print('d1,d1: {}, d2,d1: {}, d1,d2: {}, d2,d2: {}'.format(img[d1,d1], img[d2,d1], img[d1,d2],img[d2,d2]))
+
+    if rotate_deg != 0:
+        img = ndimage.rotate(img, rotate_deg, reshape=False)
+        # print('rotated:')
+        # print('shape: {}'.format(np.shape(img)))
+        # print('d1,d1: {}, d2,d1: {}, d1,d2: {}, d2,d2: {}'.format(img[d1,d1], img[d2,d1], img[d1,d2],img[d2,d2]))
+
+    if shift_x != 0 or shift_y != 0:
+        img = np.roll(img, (shift_x, shift_y), (1,0))
+        # print('shifted:')
+        # print('shape: {}'.format(np.shape(img)))
+        # print('d1,d1: {}, d2,d1: {}, d1,d2: {}, d2,d2: {}'.format(img[d1,d1], img[d2,d1], img[d1,d2],img[d2,d2]))
+
+    if crop_x != 0 or crop_y != 0:
+        (input_x, input_y) = np.shape(img)
+        if crop_x == 0 or crop_x > input_x: crop_x = input_x
+        if crop_y == 0 or crop_y > input_y: crop_y = input_y
+        offset_x = int((input_x - crop_x) / 2)
+        offset_y = int((input_y - crop_y) / 2)
+        img = img[offset_y:(crop_y + offset_y), offset_x:(crop_x + offset_x)]
+        # print('cropped:')
+        # print('shape: {}'.format(np.shape(img)))
+        # print('d1,d1: {}, d2,d1: {}, d1,d2: {}, d2,d2: {}'.format(img[d1,d1], img[d2,d1], img[d1,d2],img[d2,d2]))
+    return img
 
 def _get_extension(path):
     """Extract the file extension from the provided path
@@ -515,7 +553,9 @@ def filter_streaks(img, sigma, level=0, wavelet='db3', crossover=10, threshold=-
     return fimg
 
 
-def read_filter_save(output_root_dir, input_path, output_path, sigma, level=0, wavelet='db3',
+def read_filter_save(output_root_dir, input_path, output_path, sigma, 
+                     shift_x, shift_y, crop_x, crop_y, scale, rotate_deg, manipulate=False,
+                     level=0, wavelet='db3',
                      crossover=10, threshold=-1, compression=1,
                      flat=None, dark=0, z_idx=None, rotate=False,
                      lightsheet=False,
@@ -606,6 +646,10 @@ def read_filter_save(output_root_dir, input_path, output_path, sigma, level=0, w
 
     if rotate:
         img = np.rot90(img)
+
+    if manipulate:
+        img = manipulate_image(img, scale, rotate_deg, shift_x, shift_y, crop_x, crop_y)
+
     fimg = filter_streaks(img, sigma, level=level, wavelet=wavelet, crossover=crossover, threshold=threshold, flat=flat, dark=dark)
     # Save image, retry if OSError for NAS
     for _ in range(nb_retry):
@@ -685,7 +729,9 @@ def _find_all_images(search_path, input_path, output_path, zstep=None):
     return img_paths
 
 
-def batch_filter(input_path, output_path, workers, chunks, sigma, level=0, wavelet='db3', crossover=10,
+def batch_filter(input_path, output_path, workers, chunks, sigma, 
+                 shift_x, shift_y, crop_x, crop_y, scale, rotate_deg,
+                 manipulate=False, level=0, wavelet='db3', crossover=10,
                  threshold=-1, compression=1, flat=None, dark=0, zstep=None, rotate=False,
                  lightsheet=False,
                  artifact_length=150,
@@ -695,7 +741,7 @@ def batch_filter(input_path, output_path, workers, chunks, sigma, level=0, wavel
                  dont_convert_16bit=False,
                  output_format=None,
                  progress_dialog = None,
-                 step_bounds = None
+                 step_bounds = None,
                  ):
     """Applies `streak_filter` to all images in `input_path` and write the results to `output_path`.
 
@@ -797,7 +843,14 @@ def batch_filter(input_path, output_path, workers, chunks, sigma, level=0, wavel
             'percentile': percentile,
             'lightsheet_vs_background': lightsheet_vs_background,
             'dont_convert_16bit' : dont_convert_16bit,
-            'output_format': output_format
+            'output_format': output_format,
+            'shift_x': shift_x,
+            'shift_y': shift_y,
+            'crop_x': crop_x,
+            'crop_y': crop_y,
+            'scale': scale,
+            'rotate_deg': rotate_deg,
+            'manipulate': manipulate
         }
         args.append(arg_dict)
     print('Pystripe batch processing progress:')
@@ -855,6 +908,13 @@ def _parse_args(raw_args=None):
     parser.add_argument("--dont-convert-16bit", help="Is the output converted to 16-bit .tiff or not", action="store_true")
     parser.add_argument("--output_format", "-of", help="Desired format output for the images", type=str, required=False, default=None)
     parser.add_argument('--log-path',type=str,required=False, default=None, help="path to the logs for postprocessing")
+    parser.add_argument("--shift_x", help="X shift, measured in pixels (Default: 0)", type=int, default=0)
+    parser.add_argument("--shift_y", help="Y shift, measured in pixels (Default: 0)", type=int, default=0)
+    parser.add_argument("--scale", help="Image scale factor (Default: 1)", type=float, default=1)
+    parser.add_argument("--rotate_deg", help="Image rotation, measured in degrees (Default: 0)", type=float, default=0)
+    parser.add_argument("--crop_x", help="Final image size x-dimension (Default: 0)", type=int, default=0)
+    parser.add_argument("--crop_y", help="Final image size y-dimension (Default: 0)", type=int, default=0)
+    parser.add_argument("--manipulate", help="Manipulate image by scaling, rotating, shifting or cropping (Default: False)", type=bool, default=False)
     # parser.add_argument("--auto-mode", "-a", help="If true, use live destriping mode (i.e. keep track of which images have been destriped)", action="store_true")
     args = parser.parse_args(raw_args)
     return args
@@ -947,7 +1007,14 @@ def main(raw_args=None):
                          percentile=args.percentile,
                          lightsheet_vs_background=args.lightsheet_vs_background,
                          dont_convert_16bit=args.dont_convert_16bit,
-                         output_format=args.output_format
+                         output_format=args.output_format,
+                         shift_x = args.shift_x,
+                         shift_y = args.shift_y,
+                         crop_x = args.crop_x,
+                         crop_y = args.crop_y,
+                         rotate_deg = args.rotate_deg,
+                         scale = args.scale,
+                         manipulate = args.manipulate
                          )
 
     elif input_path.is_dir():  # batch processing
@@ -977,9 +1044,17 @@ def main(raw_args=None):
                      percentile=args.percentile,
                      lightsheet_vs_background=args.lightsheet_vs_background,
                      dont_convert_16bit=args.dont_convert_16bit,
-                     output_format=args.output_format
+                     output_format=args.output_format,
+                     shift_x = args.shift_x,
+                     shift_y = args.shift_y,
+                     crop_x = args.crop_x,
+                     crop_y = args.crop_y,
+                     rotate_deg = args.rotate_deg,
+                     scale = args.scale,
+                     manipulate = args.manipulate
                      )
     else:
+
         print('Cannot find input file or directory. Exiting...')
 
 

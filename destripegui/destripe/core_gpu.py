@@ -3,7 +3,7 @@ from argparse import RawDescriptionHelpFormatter
 from pathlib import Path
 import os, time
 import numpy as np
-from scipy import fftpack
+from scipy import fftpack, ndimage
 from skimage.filters import threshold_otsu
 import tifffile
 import pywt
@@ -47,7 +47,15 @@ class Destriper:
                 extra_smoothing : int = 1,
                 timeprint : bool = False,
                 dont_convert_16bit : bool = False,
-                output_format : Optional[str] = None):
+                output_format : Optional[str] = None,
+                scale : float = 1,
+                rotate_deg : float = 0,
+                shift_x : int = 0,
+                shift_y : int = 0,
+                crop_x : int = 0,
+                crop_y : int = 0,
+                manipulate : bool = False
+                ):
         """Destriper class that applies `streak_filter` to all images in `input_path` and write the results to `output_path`.
 
         Parameters
@@ -123,6 +131,13 @@ class Destriper:
         self.output_format = output_format
         self.extra_smoothing = extra_smoothing
         self.timeprint = timeprint
+        self.scale = scale,
+        self.rotate_deg = rotate_deg,
+        self.shift_x = shift_x,
+        self.shift_y = shift_y,
+        self.crop_x = crop_x,
+        self.crop_y = crop_y,
+        self.manipulate = manipulate
 
 
     def max_level(self, min_len):
@@ -155,8 +170,33 @@ class Destriper:
         if imgs_torch.get_device() != flat.get_device():
             flat = flat.to(device=imgs_torch.get_device())
         return (imgs_torch / flat)
-
     
+    def manipulate_images(self, fimgs):
+        scale = self.scale
+        rotate_deg = self.rotate_deg
+        shift_x = self.shift_x
+        shift_y = self.shift_y
+        crop_x = self.crop_x
+        crop_y = self.crop_y
+
+        if scale != 1:
+            fimgs = ndimage.zoom(fimgs, scale)
+
+        if rotate_deg != 0:
+            fimgs = ndimage.rotate(fimgs, rotate_deg, reshape=False)
+
+        if shift_x != 0 or shift_y != 0:
+            fimgs = np.roll(fimgs, (shift_x, shift_y), (1,0))
+
+        if crop_x != 0 or crop_y != 0:
+            (input_x, input_y) = np.shape(fimgs)
+            if crop_x == 0 or crop_x > input_x: crop_x = input_x
+            if crop_y == 0 or crop_y > input_y: crop_y = input_y
+            offset_x = int((input_x - crop_x) / 2)
+            offset_y = int((input_y - crop_y) / 2)
+            fimgs = fimgs[offset_y:(crop_y + offset_y), offset_x:(crop_x + offset_x)]
+        return fimgs
+
     @staticmethod
     def num_cpu_readers():
         if os.cpu_count() <= 16:
@@ -369,6 +409,8 @@ class Destriper:
         # Divide by the flat
         if self.flat is not None:
             fimgs = self.apply_flat_torch(fimgs, self.flat)
+        if self.manipulate:
+            fimgs = self.manipulate_images(self, fimgs)
 
         # Rotates and flips the images for deskewing purposes
         # if self.post_rotate_flip:
@@ -716,6 +758,13 @@ def _parse_args(raw_args=None):
     parser.add_argument("--output-format", "-of", help="Desired format output for the images", type=str, required=False, default=None)
     parser.add_argument('--log-path',type=str,required=False, default=None, help="path to the logs for postprocessing")
     parser.add_argument('--timeprint', help="print time taken for each batch step", action='store_true')
+    parser.add_argument("--shift_x", help="X shift, measured in pixels (Default: 0)", type=int, default=0)
+    parser.add_argument("--shift_y", help="Y shift, measured in pixels (Default: 0)", type=int, default=0)
+    parser.add_argument("--scale", help="Image scale factor (Default: 1)", type=float, default=1)
+    parser.add_argument("--rotate_deg", help="Image rotation, measured in degrees (Default: 0)", type=float, default=0)
+    parser.add_argument("--crop_x", help="Final image size x-dimension (Default: 0)", type=int, default=0)
+    parser.add_argument("--crop_y", help="Final image size y-dimension (Default: 0)", type=int, default=0)
+    parser.add_argument("--manipulate", help="Manipulate image by scaling, rotating, shifting or cropping (Default: False)", type=bool, default=False)
     args = parser.parse_args(raw_args)
     return args
 
@@ -779,7 +828,14 @@ def main(raw_args=None):
                             auto_mode = args.auto_mode,
                             dont_convert_16bit=args.dont_convert_16bit,
                             output_format=output_format,
-                            timeprint=args.timeprint
+                            timeprint=args.timeprint,
+                            shift_x = args.shift_x,
+                            shift_y = args.shift_y,
+                            crop_x = args.crop_x,
+                            crop_y = args.crop_y,
+                            rotate_deg = args.rotate_deg,
+                            scale = args.scale,
+                            manipulate = args.manipulate
                             )
         destriper.batch_filter()
     else:
