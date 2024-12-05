@@ -44,7 +44,7 @@ def run_pystripe(input_path, output_path, current_dir):
     scale = 1
     crop_x = 0
     crop_y = 0
-    rotate = 0
+    rotate = 20
     manipulate = False    
 
     contents = os.listdir(input_path)

@@ -180,21 +180,24 @@ class Destriper:
         crop_y = self.crop_y
 
         if scale != 1:
-            fimgs = ndimage.zoom(fimgs, scale)
+            fimgs = torchvision.transforms.Resize()
 
-        if rotate_deg != 0:
-            fimgs = ndimage.rotate(fimgs, rotate_deg, reshape=False)
+        # if scale != 1:
+        #     fimgs = ndimage.zoom(fimgs, scale)
 
-        if shift_x != 0 or shift_y != 0:
-            fimgs = np.roll(fimgs, (shift_x, shift_y), (1,0))
+        # if rotate_deg != 0:
+        #     fimgs = ndimage.rotate(fimgs, rotate_deg, reshape=False)
 
-        if crop_x != 0 or crop_y != 0:
-            (input_x, input_y) = np.shape(fimgs)
-            if crop_x == 0 or crop_x > input_x: crop_x = input_x
-            if crop_y == 0 or crop_y > input_y: crop_y = input_y
-            offset_x = int((input_x - crop_x) / 2)
-            offset_y = int((input_y - crop_y) / 2)
-            fimgs = fimgs[offset_y:(crop_y + offset_y), offset_x:(crop_x + offset_x)]
+        # if shift_x != 0 or shift_y != 0:
+        #     fimgs = np.roll(fimgs, (shift_x, shift_y), (1,0))
+
+        # if crop_x != 0 or crop_y != 0:
+        #     (input_x, input_y) = np.shape(fimgs)
+        #     if crop_x == 0 or crop_x > input_x: crop_x = input_x
+        #     if crop_y == 0 or crop_y > input_y: crop_y = input_y
+        #     offset_x = int((input_x - crop_x) / 2)
+        #     offset_y = int((input_y - crop_y) / 2)
+        #     fimgs = fimgs[offset_y:(crop_y + offset_y), offset_x:(crop_x + offset_x)]
         return fimgs
 
     @staticmethod
