@@ -344,6 +344,7 @@ def finish_directory(dir):
     # log(' finishing {}'.format(dir['path']), True)
 
 def append_folder_name(dir, drive, msg, attempts = 0):
+    global reconnect
     if drive == 'in':
         path = dir['path'] 
     else:
@@ -358,7 +359,11 @@ def append_folder_name(dir, drive, msg, attempts = 0):
     except Exception as error:
         print(error)
         print('Cannot access {} to rename folder'.format(path))
-        x = input('Make sure it is accessible and not open in another program, then press Enter to retry...\n')
+        if reconnect:
+            print('Retrying in 5 seconds')
+            time.sleep(5)
+        else:
+            x = input('Make sure it is accessible and not open in another program, then press Enter to retry...\n')
         append_folder_name(dir, drive, msg)
 
 def prepend_tag(dir, drive, msg):
@@ -480,56 +485,7 @@ def main():
             print('Another instance of destripegui is already running')
             exit(1)
 
-
-    print('''
-                                                                        
-                                               ......              .....                        
-                                           ...-=++++=-..       ..:-=+++=-:..                    
-                                          ..=+=:...=+=-.        .-++-. .-=+-..                  
-                                         .:+=.. ..==-..          ..=+-.  .-==.                  
-                                        .:+=. ..-=-..              .:==:. .-==..                
-                                    ..:-=+++===+=:.                  .-=====+++=:..             
-                                 ..:-==-:::-=++=:                     .-++=--::--==-..          
-                                ..=+-.      ..-==.                   .:==:.      .:==-..        
-                               .:+=.    ..-:. .:=-.                  .=-.  .-:..    :==..       
-                              ..+=.   ..-++=:  .:=:                 .-=.  .-++=:..   :=-.       
-                              .-+.  ..:+=--+=.  .--.                :=:.  :==:=+=..   -+..      
-                              .==.  .:=:..:+=.  ...                  ..   :==...-=..  :+:.      
-                              .==  .:=.  .-=:.                            .=+:. .:=.. :+:.      
-                              .-+:.-+=::-==:.    ..:-.           .:-:.     .-==-:-+=..=+:.      
-                             ..=++=++++=-:.  .:-==++=:           .-+++=--.. ..:-=+++=+++:.      
-                            .-=++==-:..    .:==-:::==:           .-+-::-=+-..   ..:--=+++=:..   
-                          .-+==:..        .-+-.  .:=-.            :=-.   :==:.        .:-=+=:.  
-                         .==:.           .:+=. ..:=-.             .:=-..  :==..           .-+-..
-                        .+=.  ...:-====---++=--=+=-...           ....-++=--=+=---====:...   :+-.
-                        =+:   .:+++=------====-:...--.           .:=:...-====-------=++=..  .=+:
-                        ++:  .:+=..              .:=:             .-=.              ..-+=.   =+-
-                        =+-  .-+:            ... .-=:             .-+:.....           .=+.. .=+:
-                        .=+. .:+-.    ..:-==++++++++-.            :=+++++++==-:..     .==...-+-.
-                         .-+-..=+=-::-=+=-:......:-+=:.          .-+=-:.. ..:-=+=-:::-=+-.:==:. 
-                           :=++++++++=-:.         .:==:.        .-=-.          .:-=+++++++=-..  
-                            ..::--::.    ..-..      .==:.      .-=-.     ..::.     .:---:..     
-                         .--....          .:+=:..   .:+=.     .:=-.   ...-+-.           ...:-.. 
-                          -+++++-.          .=++=:.  .-+-.    :=+:.  .-=++:.         .:=+++++.. 
-                          .+=...-=+=.     .:=+++++=-..-+-.    :=+:.:=+++++=-..    .-=+=:..:+-.  
-                           :+:  ..:=+:..:=+++=::..:-===+-.    :=+===:...:-=++=-:..=+-..  .==..  
-                           .-=:. ..:++++=-:..      ..-++-.    :=+=:.       ..:-==++=..  .-=:.   
-                            .:-===++=-:.     ...    .:=+-.    :=+-.    ...     ..:=++====-..    
-                               .....       ..-+-.    .-+-.    :=+:.    :==:..       ....        
-                             ....         .:+=+=:    .-+-.    :==:    .-+=+=..         ....     
-                             .-++-:...    .==::==.   .-+-.    :==:   .:=-.-+-.    ...-=++..     
-                             .-+-=+++=.   :+=:.-=:   .-+-.    :==:   .-+:.-+-.   -+++=-=+..     
-                             .:+: ...-+-  .-=::+=:   .-+-.    :=+:   .-+=.=+:. .==:....==..     
-                             ..=+:   .-=: ..=++=:.  .-++-.    .=+=:.  .-+++:. .=+:.  .=+:.      
-                              ..:===--=+=  ..:-=+===+++-.     .:=++===++=:..  :=+=--=+=..       
-                                ..::-=++=.     ...::-+=:       .-+=-::...    .-++=--:..         
-                                     ..:==:..    ..-==:.        .-==:..   ..:-=-..              
-                                        ..:=+=---=+=:.           ..-=+=--===-:.                 
-                                           ..-==-:.                  .:===:.                    
-                                                                  
-    ''')
-
-    global configs, input_dir, output_dir, no_list, stall_counter, safe_mode
+    global configs, input_dir, output_dir, no_list, stall_counter, safe_mode, reconnect
     
     safe_mode = False
     try:
@@ -548,6 +504,14 @@ def main():
 
     input_dir = Path(configs['paths']['input_dir'])
     output_dir = Path(configs['paths']['output_dir'])
+    
+    try:
+        reconnect = configs['params']['reconnect'].lower() == 'true'
+    except:
+        reconnect = False
+
+    print('reconnect value: {}, type: {}'.format(reconnect, type(reconnect)))
+
     try:
         x = os.listdir(input_dir)
     except:
