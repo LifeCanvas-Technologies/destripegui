@@ -654,6 +654,7 @@ class Destriper:
 
                         if last_imgs_chunk is not None:
                             if self.timeprint: tic = time.time()
+                            torch.cuda.synchronize()
                             torch_imwrite3(last_imgs_chunk, last_args_chunk)
                             if self.timeprint: print("Writing chunk #{} time: {}".format(chunk_counter, time.time() - tic))
                             pbar.update(len(last_args_chunk))
@@ -664,6 +665,7 @@ class Destriper:
                         chunk_counter += 1
                     else:
                         if self.timeprint: tic = time.time()
+                        torch.cuda.synchronize()
                         torch_imwrite3(last_imgs_chunk, last_args_chunk)
                         if self.timeprint: print("Writing chunk #{} time: {}".format(chunk_counter, time.time() - tic))
                         pbar.update(len(last_args_chunk))
