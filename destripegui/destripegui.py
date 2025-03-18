@@ -510,8 +510,6 @@ def main():
     except:
         reconnect = False
 
-    print('reconnect value: {}, type: {}'.format(reconnect, type(reconnect)))
-
     try:
         x = os.listdir(input_dir)
     except:
