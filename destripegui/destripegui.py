@@ -328,6 +328,8 @@ def finish_directory(dir):
     # convert .orig images back, add metadata tags and rename folders
     # revert_images(dir)
 
+    time_stamp_finish(dir)
+
     for file in Path(dir['path']).iterdir():
         file_name = os.path.split(file)[1]
         if Path(file).suffix in ['.txt', '.ini', '.json']:
@@ -407,6 +409,53 @@ def abort(dir):
             prepend_tag(dir, 'out', 'A')
         append_folder_name(dir, 'out', configs['suffixes']['output_abort'])
             
+def time_stamp_start(current_dir):
+    time_file = os.path.join(current_dir['output_path'], 'Time Stamps.txt')
+    try:
+        with open(time_file, 'r') as f:
+            pass
+    except:
+        os.makedirs(current_dir['output_path'])
+        with open(time_file, 'w') as f:
+            f.write('Destriper Start Time: {}'.format(datetime.now().strftime("%m/%d/%Y, %H:%M:%S")))
+
+def time_stamp_finish(current_dir):
+    finish_time = datetime.now()
+    time_file = os.path.join(current_dir['output_path'], 'Time Stamps.txt')
+
+    with open(time_file, 'r') as f:
+        start_string = f.readlines()[0]
+        start_time = datetime.strptime(start_string[22:], "%m/%d/%Y, %H:%M:%S")
+
+    elapsed_time = finish_time - start_time
+    s = elapsed_time.seconds
+    hours = math.floor(s/3600)
+    minutes = math.floor(s/60)%60
+    seconds = s%60
+    timer_text = "\nDestriper Finish Time: {}".format(finish_time.strftime("%m/%d/%Y, %H:%M:%S"))
+    timer_text += "\nDestriper Elapsed Time: {:02}:{:02}:{:02}".format(hours, minutes, seconds)
+
+    
+    asi_file = os.path.join(current_dir['path'], 'ASI_logging.txt')
+    with open(asi_file, 'r') as f:
+        lines = f.readlines()
+    line = lines[0]
+    acq_start = datetime.strptime(line[:line.index('M')-2], "%m/%d/%Y %H:%M:%S")
+    line = lines[-1]
+    acq_finish = datetime.strptime(line[:line.index('M')-2], "%m/%d/%Y %H:%M:%S")
+    elapsed_time = acq_finish - acq_start
+    s = elapsed_time.seconds
+    hours = math.floor(s/3600)
+    minutes = math.floor(s/60)%60
+    seconds = s%60
+    timer_text += "\n\nAcquisition Start Time: {}".format(acq_start.strftime("%m/%d/%Y, %H:%M:%S"))
+    timer_text += "\nAcquisition Finish Time: {}".format(acq_finish.strftime("%m/%d/%Y, %H:%M:%S"))
+    timer_text += "\nAcquisition Elapsed Time: {:02}:{:02}:{:02}".format(hours, minutes, seconds)
+
+
+
+    with open(time_file, 'a') as f:
+        f.write(timer_text)
 
 def search_loop():
     while True:
@@ -453,8 +502,9 @@ def search_loop():
             if destripe_tile:
                 input_path = os.path.join(current_dir['path'], destripe_tile)
                 output_path = os.path.join(current_dir['output_path'], destripe_tile)
+                time_stamp_start(current_dir)
                 print('\nDestriping {}...\n'.format(destripe_tile))
-                time.sleep(2)
+                time.sleep(1)
                 run_pystripe(input_path, output_path, current_dir)
 
             elif waiting_tile:
@@ -477,6 +527,7 @@ def search_loop():
                 time.sleep(5)
             
 def main():
+    print('testing')
     if 'configs' not in globals():
         double_test = CreateMutex(None, 1, 'A unique mutex name')
         if GetLastError(  ) == ERROR_ALREADY_EXISTS:
@@ -488,6 +539,9 @@ def main():
     global configs, input_dir, output_dir, no_list, stall_counter, safe_mode, reconnect
     
     safe_mode = False
+    stall_counter = ['', 0, 0]
+    no_list = []
+
     try:
         if sys.argv[1] == '-s':
             safe_mode = True
@@ -524,8 +578,7 @@ def main():
         print('Make sure drive is accessible, or change drive location in config file: {}'.format(config_path))
         x = input('Press Enter to retry...')
         main()
-    stall_counter = ['', 0, 0]
-    no_list = []
+    
     print('\nScanning {} for new acquisitions...\n'.format(input_dir))
     search_loop()
     
