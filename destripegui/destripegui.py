@@ -527,7 +527,7 @@ def search_loop():
                 time.sleep(5)
             
 def main():
-    print('testing')
+    # print('testing')
     if 'configs' not in globals():
         double_test = CreateMutex(None, 1, 'A unique mutex name')
         if GetLastError(  ) == ERROR_ALREADY_EXISTS:
