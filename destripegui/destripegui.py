@@ -440,9 +440,9 @@ def time_stamp_finish(current_dir):
     with open(asi_file, 'r') as f:
         lines = f.readlines()
     line = lines[0]
-    acq_start = datetime.strptime(line[:line.index('M')-2], "%m/%d/%Y %H:%M:%S")
+    acq_start = datetime.strptime(line[:line.index('M')+1], "%m/%d/%Y %I:%M:%S %p")
     line = lines[-1]
-    acq_finish = datetime.strptime(line[:line.index('M')-2], "%m/%d/%Y %H:%M:%S")
+    acq_finish = datetime.strptime(line[:line.index('M')+1], "%m/%d/%Y %I:%M:%S %p")
     elapsed_time = acq_finish - acq_start
     s = elapsed_time.seconds
     hours = math.floor(s/3600)
