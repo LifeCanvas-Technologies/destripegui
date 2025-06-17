@@ -25,6 +25,10 @@ def get_configs(config_path):
     config.read(config_path)
     return config
 
+def check_for_bad_images(path):
+    count = 0
+    
+
 def run_pystripe(input_path, output_path, current_dir):
     # input_path = Path(dir['path'])
     # output_path = Path(dir['output_path'])
@@ -73,6 +77,11 @@ def run_pystripe(input_path, output_path, current_dir):
                         "--sigma2", str(sigma[1]),
                         "--workers", str(workers),
                         "--chunks", str(chunks)])
+    
+    corrupted = check_for_bad_images(output_path)
+    if corrupted > 0:
+        print('{} corrupt images found in {}.  This folder is being re-destriped'.format(corrupted, output_path))
+        run_pystripe(input_path, output_path, current_dir)
         
 def pair_key_value_lists(keys, values):
     # utility function for building metadata dict
