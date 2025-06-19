@@ -3,6 +3,6 @@
 @echo off
 
 
-call activate command_line_destripe
+call activate cl_destripe_6
 command_line_destripe
 pause

@@ -1,4 +1,4 @@
-name: command_line_destripe
+name: cl_destripe_6
 channels:
   - defaults
 dependencies:

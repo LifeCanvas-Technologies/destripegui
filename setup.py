@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = "1.1.2"
+VERSION = "1.0.0"
 
 with open('README.md') as file:
     long_description = file.read()
@@ -13,7 +13,7 @@ CLASSIFIERS = [
 ]
 
 # calling the setup function 
-setuptools.setup(name='command_line_destripe',
+setuptools.setup(name='cl_destripe_6',
       version=VERSION,
       description='A command line auto-destriping tool',
       long_description=long_description,

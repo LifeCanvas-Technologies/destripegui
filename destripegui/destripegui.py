@@ -1,4 +1,4 @@
-import os, sys, time, csv, re
+import os, sys, time, csv, re, json
 import math
 import multiprocessing
 import configparser
@@ -22,9 +22,15 @@ from destripegui.destripe.utils import find_all_images
 from destripegui.destripe import supported_extensions
 
 def get_configs(config_path):
-    config = configparser.ConfigParser()   
-    config.read(config_path)
-    return config
+    reader = configparser.ConfigParser()   
+    reader.read(config_path)
+    configs = {}
+    for section in reader.sections():
+        for (key, val) in reader.items(section):
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            configs[key] = val
+    return configs
 
 def check_for_bad_images(path):
     print('Checking for corrupt files...')
@@ -46,18 +52,19 @@ def check_for_bad_images(path):
     
 
 def run_pystripe(input_path, output_path, current_dir):
+    # print('test')
     # input_path = Path(dir['path'])
     # output_path = Path(dir['output_path'])
-    sig_strs = current_dir['metadata']['Destripe'].split('/')
+    sig_strs = current_dir['metadata']['sample metadata']['destripe'].split('/')
     sigma = list(int(sig_str) for sig_str in sig_strs)
 
     # sigma = [256, 0]
-    workers = int(configs['params']['workers'])
-    chunks = int(configs['params']['chunks'])
-    use_gpu = int(configs["params"]["use_gpu"])
-    cpu_readers = int(configs["params"]["cpu_readers"])
-    gpu_chunksize = int(configs["params"]["gpu_chunksize"])
-    ram_loadsize = int(configs["params"]["ram_loadsize"])
+    workers = int(configs['workers'])
+    chunks = int(configs['chunks'])
+    use_gpu = int(configs["use_gpu"])
+    cpu_readers = int(configs["cpu_readers"])
+    gpu_chunksize = int(configs["gpu_chunksize"])
+    ram_loadsize = int(configs["ram_loadsize"])
 
     contents = os.listdir(input_path)
     if len(contents) == 1:
@@ -94,136 +101,45 @@ def run_pystripe(input_path, output_path, current_dir):
                         "--workers", str(workers),
                         "--chunks", str(chunks)])
     
-    # if 'MIP' in input_path:
-    #     return
-    return
+    if 'MIP' in input_path or not configs['check_corrupt']:
+        return
 
     corrupted = check_for_bad_images(output_path)
     if corrupted > 0:
         print('{} corrupt images found in {}.  This folder is being re-destriped'.format(corrupted, output_path))
         run_pystripe(input_path, output_path, current_dir)
-        
-def pair_key_value_lists(keys, values):
-    # utility function for building metadata dict
-
-    d = {}
-    for i in range(0, len(keys)):
-        key = keys[i]
-        val = values[i]
-        if "Z step" in key:
-            key = "Z step"
-        if key != '':
-            d[key] = val
-    return d
 
 def get_metadata(dir):
     # builds metadata dict
-
-    metadata_path = os.path.join(dir['path'], 'metadata.txt')
-    # print(dir['path'])
-
-    metadata_dict = {
-        'channels': [],
-        'tiles': []
-    }
-    sections = {
-        'channel_vals': [],
-        'tile_vals': []
-    }
-    with open(metadata_path, encoding="utf8", errors="ignore") as f:
-        reader = csv.reader(f, dialect='excel', delimiter='\t')
-        section_num = 0
-        for row in reader:
-            if section_num == 0:
-                sections['gen_keys'] = row
-                section_num += 1
-                continue
-            if section_num == 1:
-                sections['gen_vals'] = row
-                section_num += 1
-                continue
-            if section_num == 2:
-                sections['channel_keys'] = row
-                section_num += 1
-                continue
-            if section_num == 3:
-                if row[0] != 'X':
-                    sections['channel_vals'].append(row)
-                    continue
-                else:
-                    sections['tile_keys'] = row
-                    section_num += 2
-                    continue
-            if section_num == 5:
-                if 'wavelength' in row[0]: break
-                sections['tile_vals'].append(row)
-
-    d = pair_key_value_lists(sections['gen_keys'], sections['gen_vals'])
-    metadata_dict.update(d)
-
-    for channel in sections['channel_vals']:
-        d = pair_key_value_lists(sections['channel_keys'], channel)
-        metadata_dict['channels'].append(d)
-
-    for tile in sections['tile_vals']:
-        d = pair_key_value_lists(sections['tile_keys'], tile)
-        metadata_dict['tiles'].append(d)
-    
-    
-    # pprint(metadata_dict)
-    dir['metadata'] = metadata_dict
-   
-    try:
-        dir['target_per_tile'] = get_target_number(dir)
-    except:
-        dir['target_per_tile'] = 0
-
-def get_target_number(dir):
-    # Calculates number of images in acquisition
-    skips = sum(list(int(tile['Skip']) for tile in dir['metadata']['tiles']))
-    z_block = float(dir['metadata']['Z_Block'])
-    z_step = float(dir['metadata']['Z step'])
-    try:
-        steps_per_tile = max(math.ceil(z_block / z_step) - 1, 1)
-    except:
-        steps_per_tile = 1
-
-    # log("Target number calculation for {}:".format(dir['path']), False)
-    # log('skips: {}, z_block: {}, z_step: {}, target: {}'.format(skips, z_block, z_step, target), False)
-    return steps_per_tile
+    metadata_path = os.path.join(dir['path'], 'metadata.json')
+    with open(metadata_path, 'r') as f:
+        metadata = json.load(f)
+        dir['metadata'] = metadata
 
 def search_directory(search_dir, ac_list, depth):
-    # Recursive search function through input_dir to find directories with metadata.txt.  Ignores no_list
-
-    # try:
-    #     contents = os.listdir(search_dir)
-    # except WindowsError as e:
-    #     log('Error: {} Input and output drives can be set by editing: {}'.format(e, config_path), False)
-    #     log(traceback.format_exc(), False)
-    #     messagebox.showwarning(title='Drive Access Error', message='Error: {}\nInput and output drives can be set by editing:\n{}'.format(e, config_path))
-    #     return
+    # Recursive search function through input_dir to find directories with metadata.json.  Ignores no_list
 
     try:
         contents = os.listdir(search_dir)
     except:
-        print('Could not access input directory: {}.'.format(input_dir))
+        print('Could not access input directory: {}.'.format(configs['input_dir']))
         print('Make sure drive is accessible, and not open in another program.')
         x = input('Press Enter to retry...')
         search_loop()
 
-    if 'metadata.txt' in contents:
+    if 'metadata.json' in contents:
         ac_list.append({
             'path': search_dir, 
-            'output_path': os.path.join(output_dir, os.path.relpath(search_dir, input_dir))
+            'output_path': os.path.join(configs['output_dir'], os.path.relpath(search_dir, configs['input_dir']))
         })
         # log("Adding {} to provisional Acquisition Queue".format(search_dir), False)
         return ac_list
     if depth == 0: return ac_list
     for item in contents:
         item_path = os.path.join(search_dir, item)
-        if os.path.isdir(item_path) and item_path not in no_list:
+        if os.path.isdir(item_path) and item_path not in configs['no_list']:
             # try:
-            #     ac_list = search_directory(input_dir, output_dir, item_path, ac_list, depth-1)
+            #     ac_list = search_directory(configs['input_dir'], output_dir, item_path, ac_list, depth-1)
             # except: 
             #     log("Error encountered trying to add {} to New Acquisitions List:".format(item_path), True)
             #     log(traceback.format_exc(), True)
@@ -236,21 +152,17 @@ def get_acquisition_dirs():
     # run recursive search for new directories.  Build metadata dicts. Checks metadata flags and folder names to make
     # sure its actually new, and adds to no_list if not 
 
-    search_dir = input_dir
+    search_dir = configs['input_dir']
     ac_dirs = search_directory(search_dir, list(), depth=3)
             
     for dir in ac_dirs:
-        # try:
         get_metadata(dir)
-        # except:
-        #     print('Could not parse metadata.txt for {}\n'.format(dir['path']))
-        #     ac_dirs.remove(dir)
-        #     no_list.append(dir['path'])
-            
+   
     unfinished_dirs = []    
     for dir in ac_dirs:
-        # print(dir)
-        destripe_string = dir['metadata']['Destripe']
+        # print(dir['path'])
+        # print(dir['metadata'])
+        destripe_string = dir['metadata']['sample metadata']['destripe']
         try:
             tag = ''
             for s in ['N', 'C', 'D', 'A']:
@@ -258,16 +170,16 @@ def get_acquisition_dirs():
                     tag = s
                     break
             if tag == 'N':
-                no_list.append(dir['path'])
+                configs['no_list'].append(dir['path'])
                 continue
             elif tag == 'C':
-                no_list.append(dir['path'])
+                configs['no_list'].append(dir['path'])
                 continue
             elif tag == 'D':
-                no_list.append(dir['path'])
+                configs['no_list'].append(dir['path'])
                 continue
             elif tag == 'A':
-                no_list.append(dir['path'])
+                configs['no_list'].append(dir['path'])
                 continue
             else: 
                 unfinished_dirs.append(dir)
@@ -281,22 +193,12 @@ def get_acquisition_dirs():
 def count_tiles(dir):
     tiles = []
     for tile in dir['metadata']['tiles']:
-        if 'NumImages' in tile.keys():
-            expected = int(tile['NumImages'])
-        elif tile['Skip'] == '0':
-            expected = 1
-        else:
-            expected = dir['target_per_tile']
+        expected = int(tile['NumImages'])
         laser = tile['Laser']
         filter = tile['Filter']
         x = tile['X']
         y = tile['Y']
-        tile_path = os.path.join('Ex_{}_Ch{}'.format(laser, filter), x, '{}_{}'.format(x, y))
-        try:
-            os.listdir(os.path.join(dir['path'], tile_path))
-        except:
-            tile_path = tile_path.replace('_Ch', '_Em_')
-
+        tile_path = os.path.join('Ex_{}_Em_{}'.format(laser, filter), x, '{}_{}'.format(x, y))
         input_images = len(os.listdir(os.path.join(dir['path'], tile_path)))
         try:
             output_images = len(os.listdir(os.path.join(dir['output_path'], tile_path)))
@@ -350,28 +252,9 @@ def check_mips(current_dir):
                 run_pystripe(input_path, output_path, current_dir)
 
 def finish_directory(dir):
-    # print('finishing {}'.format(dir['path']))
-    # Perform tasks needed once directory is finished destriping
-
-    # log('Finishing {}...'.format(dir['path']), True)
-    # log('    Average pystripe speed for acquisition: {:.2f} it/s'.format(average_speed[0]), True)
-    no_list.append(dir['path'])
-    # log('    Adding {} to No List'.format(dir['path']), True)
-    # log('    Is pystripe running?: {}'.format(any(p.is_alive() for p in procs)), True)
-    # progress_write(dir['path'], "Finished destriping {} images".format(processed_images))
-    # duration = datetime.now() - start_time
-    # progress_write(dir['path'], "Total time elapsed: {}".format(str(duration)))
-
-    # add folder to "done queue"
-    # done_queue.insert('', 'end', values=(
-    #     os.path.relpath(dir['path'], input_dir),
-    #     processed_images,
-    #     ))
-
-    # convert .orig images back, add metadata tags and rename folders
-    # revert_images(dir)
-
-    time_stamp_finish(dir)
+    configs['no_list'].append(dir['path'])
+    if configs['time_stamp']:
+        time_stamp_finish(dir)
 
     for file in Path(dir['path']).iterdir():
         file_name = os.path.split(file)[1]
@@ -383,8 +266,8 @@ def finish_directory(dir):
     prepend_tag(dir, 'in', 'D')
     prepend_tag(dir, 'out', 'D')
     # x = input('about to rename...')
-    append_folder_name(dir, 'in', configs['suffixes']['input_done'])
-    append_folder_name(dir, 'out', configs['suffixes']['output_done'])
+    append_folder_name(dir, 'in', configs['input_done'])
+    append_folder_name(dir, 'out', configs['output_done'])
 
     # log(' finishing {}'.format(dir['path']), True)
 
@@ -404,7 +287,7 @@ def append_folder_name(dir, drive, msg, attempts = 0):
     except Exception as error:
         print(error)
         print('Cannot access {} to rename folder'.format(path))
-        if reconnect:
+        if configs['reconnect']:
             print('Retrying in 5 seconds')
             time.sleep(5)
         else:
@@ -413,27 +296,24 @@ def append_folder_name(dir, drive, msg, attempts = 0):
 
 def prepend_tag(dir, drive, msg):
     # prepend tag to metadata file
-    
+
     if drive == 'in':
-        metadata_path = os.path.join(dir['path'], 'metadata.txt')
+        metadata_path = os.path.join(dir['path'], 'metadata.json')
     else:
-        metadata_path = os.path.join(dir['output_path'], 'metadata.txt')
+        metadata_path = os.path.join(dir['output_path'], 'metadata.json')
     try:
-        with open(metadata_path, errors="ignore") as f:
-            reader = csv.reader(f, dialect='excel', delimiter='\t')
-            line_list = list(reader)
-            
-        destripe_position = line_list[0].index('Destripe')
-        destripe = line_list[1][destripe_position]
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+
+        destripe = metadata['sample metadata']['destripe']
         for char in 'ACDNacdn':
             destripe = destripe.replace(char, '')
+        destripe = msg + destripe
+        metadata['sample metadata']['destripe'] = destripe
 
-        line_list[1][destripe_position] = msg + destripe
-        # os.remove(metadata_path)
-        with open(metadata_path, 'w', newline='') as f:
-            writer = csv.writer(f, dialect='excel', delimiter='\t')
-            for row in line_list:
-                writer.writerow(row)
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+
     except:
         print('Cannot access {} to change destripe tag'.format(metadata_path))
         x = input('Make sure it is accessible and not open in another program, then press Enter to retry...\n')
@@ -445,12 +325,12 @@ def abort(dir):
     print("\nAborting {}...\n".format(dir['path']))
 
     prepend_tag(dir, 'in', 'A')
-    append_folder_name(dir, 'in', configs['suffixes']['input_abort'])
+    append_folder_name(dir, 'in', configs['input_abort'])
 
     if os.path.exists(dir['output_path']):
-        if os.path.exists(os.path.join(dir['output_path'], 'metadata.txt')):
+        if os.path.exists(os.path.join(dir['output_path'], 'metadata.json')):
             prepend_tag(dir, 'out', 'A')
-        append_folder_name(dir, 'out', configs['suffixes']['output_abort'])
+        append_folder_name(dir, 'out', configs['output_abort'])
             
 def time_stamp_start(current_dir):
     time_file = os.path.join(current_dir['output_path'], 'Time Stamps.txt')
@@ -478,26 +358,13 @@ def time_stamp_finish(current_dir):
     timer_text = "\nDestriper Finish Time: {}".format(finish_time.strftime("%m/%d/%Y, %H:%M:%S"))
     timer_text += "\nDestriper Elapsed Time: {:02}:{:02}:{:02}".format(hours, minutes, seconds)
 
-    
-    try:
-        acq_file = os.path.join(current_dir['path'], 'ASI_logging.txt')
-        with open(acq_file, 'r') as f:
-            lines = f.readlines()
-        line = lines[0]
-        acq_start = datetime.strptime(line[:line.index("M")+1], "%m/%d/%Y %I:%M:%S %p")
-        line = lines[-1]
-        acq_finish = datetime.strptime(line[:line.index('M')+1], "%m/%d/%Y %I:%M:%S %p")
-
-    except:
-        acq_file = os.path.join(current_dir['path'], 'acquisition log.txt')
-        with open(acq_file, 'r') as f:
-            lines = f.readlines()
-        line = lines[5]
-        acq_start = datetime.strptime(line[:line.index("\t")], "%Y-%m-%dT%H:%M:%S")
-        line = lines[-1]
-        acq_finish = datetime.strptime(line[:line.index("\t")], "%Y-%m-%dT%H:%M:%S")
-
-
+    acq_file = os.path.join(current_dir['path'], 'acquisition log.txt')
+    with open(acq_file, 'r') as f:
+        lines = f.readlines()
+    line = lines[5]
+    acq_start = datetime.strptime(line[:line.index("\t")], "%Y-%m-%dT%H:%M:%S")
+    line = lines[-1]
+    acq_finish = datetime.strptime(line[:line.index("\t")], "%Y-%m-%dT%H:%M:%S")
     elapsed_time = acq_finish - acq_start
     s = elapsed_time.seconds
     hours = math.floor(s/3600)
@@ -506,8 +373,6 @@ def time_stamp_finish(current_dir):
     timer_text += "\n\nAcquisition Start Time: {}".format(acq_start.strftime("%m/%d/%Y, %H:%M:%S"))
     timer_text += "\nAcquisition Finish Time: {}".format(acq_finish.strftime("%m/%d/%Y, %H:%M:%S"))
     timer_text += "\nAcquisition Elapsed Time: {:02}:{:02}:{:02}".format(hours, minutes, seconds)
-
-
 
     with open(time_file, 'a') as f:
         f.write(timer_text)
@@ -526,7 +391,7 @@ def search_loop():
             count_tiles(current_dir)
             
             show_output(ac_dirs, current_dir)
-            if safe_mode:
+            if configs['safe_mode']:
                 x = input('Press Enter to exit program...')
                 exit()
 
@@ -557,21 +422,22 @@ def search_loop():
             if destripe_tile:
                 input_path = os.path.join(current_dir['path'], destripe_tile)
                 output_path = os.path.join(current_dir['output_path'], destripe_tile)
-                time_stamp_start(current_dir)
+                if configs['time_stamp']:
+                    time_stamp_start(current_dir)
                 print('\nDestriping {}...\n'.format(destripe_tile))
                 time.sleep(1)
                 run_pystripe(input_path, output_path, current_dir)
 
             elif waiting_tile:
                 print('\nWaiting for current tile: {} to finish being acquired...'.format(waiting_tile['path']))
-                if stall_counter[0] == waiting_tile['path'] and stall_counter[1] == waiting_tile['input_images']:
-                    stall_counter[2] += 1
+                if configs['stall_counter'][0] == waiting_tile['path'] and configs['stall_counter'][1] == waiting_tile['input_images']:
+                    configs['stall_counter'][2] += 1
                 else:
-                    stall_counter[0] = waiting_tile['path']
-                    stall_counter[1] = waiting_tile['input_images']
-                    stall_counter[2] = 0
+                    configs['stall_counter'][0] = waiting_tile['path']
+                    configs['stall_counter'][1] = waiting_tile['input_images']
+                    configs['stall_counter'][2] = 0
 
-                if stall_counter[2] > 60:
+                if configs['stall_limit'] and configs['stall_counter'][2] > int(configs['stall_limit']):
                     x = input('\nThis acquisition ({}) seems to be incomplete.  Mark as aborted (y/n)?\n'.format(current_dir['path']))
                     if x in 'yesYesyeahsure':
                         abort(current_dir)
@@ -580,7 +446,7 @@ def search_loop():
 
             else:
                 time.sleep(5)
-            
+
 def main():
     # print('testing')
     if 'configs' not in globals():
@@ -591,50 +457,48 @@ def main():
             print('Another instance of destripegui is already running')
             exit(1)
 
-    global configs, input_dir, output_dir, no_list, stall_counter, safe_mode, reconnect
-    
-    safe_mode = False
-    stall_counter = ['', 0, 0]
-    no_list = []
-
-    try:
-        if sys.argv[1] == '-s':
-            safe_mode = True
-    except:
-        pass
-
-    if safe_mode:
-        print('\nRunning in Safe Mode.  No changes will be made to any files.\n')
+    global configs
     
     print('Reading config file...\n')
 
     config_path = Path(__file__).parent / 'data/config.ini'
     configs = get_configs(config_path)
 
-    input_dir = Path(configs['paths']['input_dir'])
-    output_dir = Path(configs['paths']['output_dir'])
-    
+    configs['input_dir'] = Path(configs['input_dir'])
+    configs['output_dir'] = Path(configs['output_dir'])
+
+    configs['safe_mode'] = False
     try:
-        reconnect = configs['params']['reconnect'].lower() == 'true'
+        if sys.argv[1] == '-s':
+            configs['safe_mode'] = True
+            print('\nRunning in Safe Mode.  No changes will be made to any files.\n')
     except:
-        reconnect = False
+        pass
+        
+    configs['stall_counter'] = ['', 0, 0]
+    configs['no_list'] = []
+
+    if 'reconnect' not in configs.keys(): configs['reconnect'] = False
+    if 'check_corrupt' not in configs.keys(): configs['check_corrupt'] = False
+    if 'stall_limit' not in configs.keys(): configs['stall_limit'] = False
+    if 'time_stamp' not in configs.keys(): configs['time_stamp'] = False  
 
     try:
-        x = os.listdir(input_dir)
+        x = os.listdir(configs['input_dir'])
     except:
-        print('Could not access input directory: {}.'.format(input_dir))
+        print('Could not access input directory: {}.'.format(configs['input_dir']))
         print('Make sure drive is accessible, or change drive location in config file: {}'.format(config_path))
         x = input('Press Enter to retry...')
         main()
     try:
-        x = os.listdir(output_dir)
+        x = os.listdir(configs['output_dir'])
     except:
-        print('Could not access output directory: {}.'.format(output_dir))
+        print('Could not access output directory: {}.'.format(configs['output_dir']))
         print('Make sure drive is accessible, or change drive location in config file: {}'.format(config_path))
         x = input('Press Enter to retry...')
         main()
     
-    print('\nScanning {} for new acquisitions...\n'.format(input_dir))
+    print('\nScanning {} for new acquisitions...\n'.format(configs['input_dir']))
     search_loop()
     
 
