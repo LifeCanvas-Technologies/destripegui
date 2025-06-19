@@ -15,6 +15,7 @@ import subprocess
 from pprint import pprint
 import math
 from tabulate import tabulate
+from PIL import Image
 
 from destripegui.destripe.core import main as cpu_destripe
 from destripegui.destripe.utils import find_all_images
@@ -26,7 +27,22 @@ def get_configs(config_path):
     return config
 
 def check_for_bad_images(path):
+    print('Checking for corrupt files...')
     count = 0
+    start = datetime.now()
+    for filename in os.listdir(path):
+        # print('img path: {}'.format(os.path.join(path, filename)))
+        try:
+            img = Image.open(os.path.join(path, filename))
+            img.verify()
+            # img = cv2.imread(os.path.join(directory, filename))
+            
+        except:
+            print("Bad file: {}".format(filename))
+            count += 1
+    time = datetime.now() - start
+    print("{} corrupt files found.  Total time: {} seconds".format(count, time.seconds))
+    return count
     
 
 def run_pystripe(input_path, output_path, current_dir):
@@ -78,6 +94,10 @@ def run_pystripe(input_path, output_path, current_dir):
                         "--workers", str(workers),
                         "--chunks", str(chunks)])
     
+    # if 'MIP' in input_path:
+    #     return
+    return
+
     corrupted = check_for_bad_images(output_path)
     if corrupted > 0:
         print('{} corrupt images found in {}.  This folder is being re-destriped'.format(corrupted, output_path))
@@ -90,6 +110,8 @@ def pair_key_value_lists(keys, values):
     for i in range(0, len(keys)):
         key = keys[i]
         val = values[i]
+        if "Z step" in key:
+            key = "Z step"
         if key != '':
             d[key] = val
     return d
@@ -98,6 +120,7 @@ def get_metadata(dir):
     # builds metadata dict
 
     metadata_path = os.path.join(dir['path'], 'metadata.txt')
+    # print(dir['path'])
 
     metadata_dict = {
         'channels': [],
@@ -132,6 +155,7 @@ def get_metadata(dir):
                     section_num += 2
                     continue
             if section_num == 5:
+                if 'wavelength' in row[0]: break
                 sections['tile_vals'].append(row)
 
     d = pair_key_value_lists(sections['gen_keys'], sections['gen_vals'])
@@ -145,21 +169,24 @@ def get_metadata(dir):
         d = pair_key_value_lists(sections['tile_keys'], tile)
         metadata_dict['tiles'].append(d)
     
+    
+    # pprint(metadata_dict)
     dir['metadata'] = metadata_dict
    
-    dir['target_per_tile'] = get_target_number(dir)
+    try:
+        dir['target_per_tile'] = get_target_number(dir)
+    except:
+        dir['target_per_tile'] = 0
 
 def get_target_number(dir):
     # Calculates number of images in acquisition
-
     skips = sum(list(int(tile['Skip']) for tile in dir['metadata']['tiles']))
     z_block = float(dir['metadata']['Z_Block'])
-    z_step = float(dir['metadata']['Z step (m)'])
+    z_step = float(dir['metadata']['Z step'])
     try:
         steps_per_tile = max(math.ceil(z_block / z_step) - 1, 1)
     except:
         steps_per_tile = 1
-    target = int(skips * steps_per_tile)
 
     # log("Target number calculation for {}:".format(dir['path']), False)
     # log('skips: {}, z_block: {}, z_step: {}, target: {}'.format(skips, z_block, z_step, target), False)
@@ -213,12 +240,12 @@ def get_acquisition_dirs():
     ac_dirs = search_directory(search_dir, list(), depth=3)
             
     for dir in ac_dirs:
-        try:
-            get_metadata(dir)
-        except:
-            print('Could not parse metadata.txt for {}\n'.format(dir['path']))
-            ac_dirs.remove(dir)
-            no_list.append(dir['path'])
+        # try:
+        get_metadata(dir)
+        # except:
+        #     print('Could not parse metadata.txt for {}\n'.format(dir['path']))
+        #     ac_dirs.remove(dir)
+        #     no_list.append(dir['path'])
             
     unfinished_dirs = []    
     for dir in ac_dirs:
@@ -254,7 +281,9 @@ def get_acquisition_dirs():
 def count_tiles(dir):
     tiles = []
     for tile in dir['metadata']['tiles']:
-        if tile['Skip'] == '0':
+        if 'NumImages' in tile.keys():
+            expected = int(tile['NumImages'])
+        elif tile['Skip'] == '0':
             expected = 1
         else:
             expected = dir['target_per_tile']
@@ -263,6 +292,11 @@ def count_tiles(dir):
         x = tile['X']
         y = tile['Y']
         tile_path = os.path.join('Ex_{}_Ch{}'.format(laser, filter), x, '{}_{}'.format(x, y))
+        try:
+            os.listdir(os.path.join(dir['path'], tile_path))
+        except:
+            tile_path = tile_path.replace('_Ch', '_Em_')
+
         input_images = len(os.listdir(os.path.join(dir['path'], tile_path)))
         try:
             output_images = len(os.listdir(os.path.join(dir['output_path'], tile_path)))
@@ -445,13 +479,25 @@ def time_stamp_finish(current_dir):
     timer_text += "\nDestriper Elapsed Time: {:02}:{:02}:{:02}".format(hours, minutes, seconds)
 
     
-    asi_file = os.path.join(current_dir['path'], 'ASI_logging.txt')
-    with open(asi_file, 'r') as f:
-        lines = f.readlines()
-    line = lines[0]
-    acq_start = datetime.strptime(line[:line.index('M')+1], "%m/%d/%Y %I:%M:%S %p")
-    line = lines[-1]
-    acq_finish = datetime.strptime(line[:line.index('M')+1], "%m/%d/%Y %I:%M:%S %p")
+    try:
+        acq_file = os.path.join(current_dir['path'], 'ASI_logging.txt')
+        with open(acq_file, 'r') as f:
+            lines = f.readlines()
+        line = lines[0]
+        acq_start = datetime.strptime(line[:line.index("M")+1], "%m/%d/%Y %I:%M:%S %p")
+        line = lines[-1]
+        acq_finish = datetime.strptime(line[:line.index('M')+1], "%m/%d/%Y %I:%M:%S %p")
+
+    except:
+        acq_file = os.path.join(current_dir['path'], 'acquisition log.txt')
+        with open(acq_file, 'r') as f:
+            lines = f.readlines()
+        line = lines[5]
+        acq_start = datetime.strptime(line[:line.index("\t")], "%Y-%m-%dT%H:%M:%S")
+        line = lines[-1]
+        acq_finish = datetime.strptime(line[:line.index("\t")], "%Y-%m-%dT%H:%M:%S")
+
+
     elapsed_time = acq_finish - acq_start
     s = elapsed_time.seconds
     hours = math.floor(s/3600)

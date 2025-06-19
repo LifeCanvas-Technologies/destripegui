@@ -1,0 +1,19 @@
+Obj	Immersion	H_Res	V_Res	um/pix	Z step (um)	Scanning	Sampling	Destripe	Z_Range
+LCT 3.6x	1.52+	2000	1600	1.800	5.0	FAST	1/1	256/0	-2030.1
+Wavelength	Power L	Power R							
+488	20.00	20.00							
+561	20.00	20.00							
+640	20.00	20.00							
+X	Y	Z	Laser	Side	Exposure	Acquire	Filter	NumImages	
+478800	337050	4222	561	0	2	1	561F	407	
+511200	337050	4222	561	1	2	1	561F	407	
+478800	362970	4222	561	0	2	1	561F	407	
+511200	362970	4222	561	1	2	1	561F	407	
+wavelength 488	
+z	focus
+wavelength 561	
+z	focus
+5929.9	16.2
+6500.1	16.2
+wavelength 640	
+z	focus
